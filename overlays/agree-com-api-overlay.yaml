@@ -1,0 +1,132 @@
+x-provenance:
+  generated: '2026-09-12'
+  method: generated
+  source: openapi/agree-com-api-openapi.json
+  note: >-
+    API Evangelist enhancements to the Agree API contract. This overlay is never applied to
+    the harvested original, which is preserved verbatim at
+    openapi/_original/agree-com-api-openapi-original.json. Every action below encodes a fact
+    measured during enrichment, not an opinion: the servers[] correction is a live DNS and
+    HTTP finding, and the x-agree-* extensions surface semantics the provider documents in
+    prose but does not express in the machine-readable contract.
+overlay: 1.0.0
+info:
+  title: API Evangelist enhancements for the Agree API
+  version: 1.0.0
+extends: ../openapi/agree-com-api-openapi.json
+actions:
+- target: $.info
+  description: >-
+    Record the contract's discovery location and the base-URL defect, so a generated client
+    does not inherit a host that does not resolve.
+  update:
+    x-apievangelist-source: https://secure.agree.com/documentation/openapi
+    x-apievangelist-discovered-via: >-
+      Redoc spec-url attribute on https://secure.agree.com/documentation
+    x-apievangelist-base-url-defect: >-
+      info.description and every curl example in this document instruct callers to use
+      https://api.agree.com/api/v1. That host has no DNS record (NXDOMAIN, verified
+      2026-09-12). The working base is the servers[] entry, https://secure.agree.com, where
+      GET /api/v1/contacts returns 401 as expected.
+    x-apievangelist-contact: support@agree.com
+- target: $.servers
+  description: Annotate the single server with its verified status.
+  update:
+  - url: https://secure.agree.com
+    description: >-
+      Production. Verified reachable 2026-09-12 - GET /api/v1/contacts returned HTTP 401.
+      Full base path for all operations is https://secure.agree.com/api/v1.
+    x-verified: '2026-09-12'
+    x-verified-status: 401
+- target: $
+  description: >-
+    Attach the agent surfaces the provider operates but does not declare in the contract - the
+    OAuth-gated MCP server and its authorization metadata - plus the cross-cutting runtime
+    semantics an agent needs before it writes.
+  update:
+    x-agree-mcp:
+      endpoint: https://secure.agree.com/mcp
+      mode: remote
+      auth: oauth2
+      scope: mcp
+      discovery: https://secure.agree.com/.well-known/oauth-protected-resource
+      tools_gated: true
+    x-agree-conventions:
+      pagination:
+        style: page-number
+        params:
+        - page
+        - page_size
+        max_page_size: 100
+        envelope: pagination
+      response_envelope: data
+      idempotency:
+        supported: false
+        coverage: none
+      rate_limits:
+        published: false
+      error_format: custom-json
+      rfc9457: false
+- target: $.components.securitySchemes.bearer
+  description: Make the key's blast radius explicit - the documentation states it, the contract does not.
+  update:
+    x-key-scope: organization-wide
+    x-key-scope-note: >-
+      Unscoped. The documentation states "it provides full access to your organization's data".
+      There is no read-only key and no per-resource restriction.
+    x-provisioning: Agree dashboard, Settings > API Keys
+- target: $.paths['/api/v1/invoices/create_and_send'].post
+  description: >-
+    Flag the highest-consequence operation in the API. It creates an invoice AND emails a
+    payment link to a customer in one irreversible call, with no idempotency key.
+  update:
+    x-agree-consequence: high
+    x-agree-side-effects:
+    - Creates an invoice
+    - Emails a payment link to the billing contact
+    x-agree-reversal: DELETE /api/v1/invoices/{id} (cancel). No window is documented.
+    x-agree-idempotency: none
+    x-agree-safer-alternative: >-
+      POST /api/v1/invoices then POST /api/v1/invoices/{id}/send, the two-step path the
+      provider itself recommends when the document should be reviewed first.
+- target: $.paths['/api/v1/agreements/create_and_send'].post
+  description: Flag the agreement equivalent - it sends a contract for signature in one call.
+  update:
+    x-agree-consequence: high
+    x-agree-side-effects:
+    - Creates an agreement from a template
+    - Sends it to all recipients for signature
+    x-agree-reversal: DELETE /api/v1/agreements/{id} (soft delete). No window is documented.
+    x-agree-idempotency: none
+    x-agree-safer-alternative: POST /api/v1/agreements then POST /api/v1/agreements/{id}/send.
+- target: $.paths['/api/v1/invoices/{id}/pdf'].get
+  description: Document the async 202 polling contract, which is the only retry signal in the API.
+  update:
+    x-agree-async:
+      pattern: 202 + Retry-After
+      default_retry_after_seconds: 3
+      config_key: invoice_pdf_api_retry_after_seconds
+      poll: Repeat the same GET until 200 with data.url.
+- target: $.paths['/api/v1/agreements/{id}/pdf'].get
+  description: Same async polling contract on the agreement PDF.
+  update:
+    x-agree-async:
+      pattern: 202 + Retry-After
+      default_retry_after_seconds: 3
+      poll: Repeat the same GET until 200 with data.url.
+- target: $.paths['/api/v1/invoices/{id}/receipt_pdf'].get
+  description: Record the state precondition that produces a 422 rather than a 404.
+  update:
+    x-agree-precondition: >-
+      Only available when the invoice status is paid. Any other status returns 422, not 404.
+- target: $.tags[?(@.name=='Webhooks')]
+  description: Bind the webhook surface to the generated AsyncAPI and flag the path mismatch.
+  update:
+    x-asyncapi: ../asyncapi/agree-com-webhooks-asyncapi.yml
+    x-event-count: 12
+    x-signature-header: X-Webhook-Signature
+    x-signature-algorithm: HMAC-SHA256
+    x-delivery-semantics: at-least-once
+    x-path-mismatch: >-
+      This tag's prose documents the resource as /api/v1/webhook_endpoints throughout; the
+      declared paths in this document are /api/v1/webhooks. The paths are authoritative.

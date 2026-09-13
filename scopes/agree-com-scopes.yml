@@ -1,0 +1,55 @@
+generated: '2026-09-12'
+method: probed
+source: https://secure.agree.com/.well-known/oauth-authorization-server
+docs: null
+docs_note: >-
+  No scopes or permissions reference page is published. agree.com/developers does not mention
+  OAuth scopes, and the API documentation at secure.agree.com/documentation covers only the
+  bearer API key. The scope list below is read from the authorization server's own RFC 8414
+  metadata document, which is the only place Agree.com publishes it.
+name: Agree.com OAuth Scopes
+description: >-
+  Agree.com's OAuth 2.1 authorization server advertises exactly one scope. It governs the
+  hosted MCP server and nothing else - the REST API uses an unscoped bearer API key and has
+  no OAuth surface at all.
+authorization_server:
+  issuer: https://secure.agree.com
+  metadata: https://secure.agree.com/.well-known/oauth-authorization-server
+  grant_types_supported:
+  - authorization_code
+  - refresh_token
+  response_types_supported:
+  - code
+  code_challenge_methods_supported:
+  - S256
+  token_endpoint_auth_methods_supported:
+  - none
+  - client_secret_post
+  - client_secret_basic
+  dynamic_client_registration: https://secure.agree.com/oauth/register
+  revocation_endpoint: https://secure.agree.com/oauth/revoke
+  op_policy_uri: https://agree.com/privacy
+scope_count: 1
+scopes:
+- name: mcp
+  description: >-
+    Access to the Agree MCP server at https://secure.agree.com/mcp. Declared in
+    scopes_supported in the authorization server metadata.
+  grants: unknown
+  grants_note: >-
+    NOT DOCUMENTED. Agree.com publishes no statement of what this scope permits. Because the
+    MCP tool list is itself OAuth-gated, the set of actions a holder of this scope can take -
+    including whether it can create and send invoices, send agreements for signature, or read
+    revenue reporting - cannot be established from any public source. This is the single
+    largest agent-readiness gap on this provider: a consent screen backed by one opaque,
+    undocumented scope gives a user no basis to decide what they are authorizing.
+  resource: https://secure.agree.com/mcp
+  source: https://secure.agree.com/.well-known/oauth-authorization-server
+findings:
+- >-
+  One coarse scope for an entire contract-and-payments surface. There is no read-only scope
+  and no separation between signing authority and money movement.
+- >-
+  Dynamic client registration is open at /oauth/register with token_endpoint_auth_method
+  "none" supported, which is the correct posture for public MCP clients and is what lets an
+  agent connect without a preregistered client ID.

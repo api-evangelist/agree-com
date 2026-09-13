@@ -1,0 +1,83 @@
+generated: '2026-09-12'
+method: searched
+source: >-
+  registry.npmjs.org search + https://agree.com/developers +
+  https://secure.agree.com/documentation + github.com/agree-com, github.com/agreecom
+name: Agree.com Packages and SDKs
+description: >-
+  Agree.com publishes no client libraries. Every integration example in its documentation is
+  raw curl, plus Node.js and Python webhook-verification snippets that use only standard
+  library crypto. No SDKs pointer is emitted for this provider, because there are no SDKs.
+package_count: 0
+official_sdk_count: 0
+packages: []
+registries_searched:
+- registry: npm
+  endpoint: https://registry.npmjs.org/-/v1/search
+  queries:
+  - agree
+  - agree.com
+  - agree-api
+  result: >-
+    No first-party package. The nearest name collisions are unrelated - npm "agree" is
+    jonnor/agree, a JavaScript contracts-programming library, and "meepo-weui-agree" is a
+    WeChat UI checkbox component.
+  version: null
+  published: null
+- registry: pypi
+  result: No first-party package found.
+  version: null
+  published: null
+- registry: rubygems
+  result: No first-party package found.
+  version: null
+  published: null
+- registry: packagist
+  result: No first-party package found.
+  version: null
+  published: null
+- registry: nuget
+  result: No first-party package found.
+  version: null
+  published: null
+- registry: maven-central
+  result: No first-party package found.
+  version: null
+  published: null
+- registry: crates.io
+  result: No first-party package found.
+  version: null
+  published: null
+- registry: pkg.go.dev
+  result: No first-party package found.
+  version: null
+  published: null
+source_repositories:
+  github_org: null
+  detail: >-
+    Agree.com operates no public GitHub organization. https://api.github.com/orgs/agree-com
+    returns 404 and both github.com/agree-com and github.com/agreecom return 404. There is no
+    public repository hosting SDK, CLI, or example code.
+  probed:
+  - url: https://api.github.com/orgs/agree-com
+    status: 404
+  - url: https://github.com/agree-com
+    status: 404
+  - url: https://github.com/agreecom
+    status: 404
+cli:
+  advertised: true
+  published: false
+  detail: >-
+    agree.com/developers advertises "CLI - Manage Agree from the command line" as a tile, but
+    publishes no install command, no package name, no repository, and no command reference.
+    Nothing matching it exists in npm, PyPI, Homebrew, or any GitHub organization. No cli/
+    artifact is written, because there is nothing real to describe.
+findings:
+- >-
+  Zero SDKs for a payments API is unusual and is the clearest developer-experience gap on this
+  provider. A consumer integrating money movement writes their own HTTP client from the
+  OpenAPI - which, to be fair, is complete enough to generate one from.
+- >-
+  Because the OpenAPI is served anonymously and parses cleanly, generated clients are viable
+  today even though no first-party ones exist.

@@ -1,0 +1,143 @@
+generated: '2026-09-12'
+method: derived
+source: >-
+  openapi/_original/agree-com-api-openapi-original.json (4xx responses across all 56
+  operations) + https://secure.agree.com/documentation (Introduction > Errors)
+name: Agree.com Error Catalog
+description: >-
+  Agree.com's error surface is documented and consistent, but it is not RFC 9457. Two distinct
+  envelopes are in use, selected by class of failure, and both are served as application/json
+  rather than application/problem+json. There is no stable machine-readable error code: the
+  only identifiers an agent can branch on are the HTTP status and, for validation failures,
+  the field names used as object keys.
+format: custom-json
+rfc9457: false
+rfc9457_note: >-
+  No type URI, no title/detail/instance members, and no application/problem+json media type on
+  any of the 141 documented 4xx responses. Adopting RFC 9457 would be a low-cost, high-value
+  change here because the envelopes are already uniform.
+media_type: application/json
+envelopes:
+- id: scalar-error
+  shape: '{"error": "<human readable message>"}'
+  used_by:
+  - 400 (BadRequest)
+  - 401 (Unauthorized)
+  - 403 (Forbidden)
+  - 404 (NotFound)
+  description: >-
+    A single human-readable string. Not enumerable and not stable - an agent cannot key off
+    it safely, only off the status code.
+  schemas:
+  - BadRequest
+  - Unauthorized
+  - Forbidden
+  - NotFound
+- id: field-errors
+  shape: '{"errors": {"<field>": ["<message>", ...]}}'
+  used_by:
+  - 422 (validation)
+  - 400 (some create/update operations)
+  description: >-
+    A map of field name to an array of messages. This IS machine-usable - the keys are the
+    request-body field names - and is the only structured error information the API returns.
+  schemas:
+  - Error
+  example:
+    errors:
+      amount:
+      - can't be blank
+      recurring_options:
+      - is invalid
+no_5xx_documented: true
+no_5xx_note: >-
+  Not one operation documents a 5xx response. Server-error behaviour, including whether the
+  envelope shape holds, is undocumented across the whole API.
+problem_types:
+- status: 400
+  title: Bad Request
+  slug: bad-request
+  occurrences: 11
+  envelope: scalar-error or field-errors
+  cause: Invalid parameters - most commonly an invalid page or page_size on a list endpoint.
+  example: '{"error": "Invalid page or page_size"}'
+  remediation: >-
+    Check pagination bounds (page >= 1, page_size <= 100) and query-parameter formats. Date
+    filters must be ISO 8601 UTC.
+  retryable: false
+- status: 401
+  title: Unauthorized
+  slug: unauthorized
+  occurrences: 56
+  envelope: scalar-error
+  cause: Missing or invalid API key.
+  example: '{"error": "Invalid or missing API key"}'
+  remediation: >-
+    Send Authorization: Bearer <API_KEY>. Regenerate the key in Settings > API Keys if it was
+    rotated or revoked.
+  retryable: false
+  note: >-
+    Documented on every single operation - the only response code with complete coverage.
+- status: 403
+  title: Forbidden
+  slug: forbidden
+  occurrences: 26
+  envelope: scalar-error
+  cause: >-
+    The key is valid but the resource belongs to another organization. Agree.com scopes every
+    record to one organization and cross-organization reads fail here rather than at 404.
+  example: '{"error": "You do not have access to this resource"}'
+  remediation: Confirm the resource ID belongs to the organization that owns the API key.
+  retryable: false
+- status: 404
+  title: Not Found
+  slug: not-found
+  occurrences: 30
+  envelope: scalar-error
+  cause: The resource does not exist, or was soft-deleted.
+  variants:
+  - Not found
+  - Template not found
+  - Receipt PDF not found
+  - No endpoints subscribed to webhook.test
+  example: '{"error": "Not found"}'
+  remediation: >-
+    Verify the UUID. Note that soft-deleted contacts and agreements stop resolving here even
+    though the underlying record is retained.
+  retryable: false
+- status: 422
+  title: Unprocessable Entity
+  slug: validation-failed
+  occurrences: 18
+  envelope: field-errors
+  cause: >-
+    Validation failure on the request body, or a state precondition - requesting a receipt PDF
+    for an invoice that is not yet paid returns 422, not 404.
+  variants:
+  - Validation errors
+  - Invoice not paid
+  example: '{"errors": {"email": ["has already been taken"], "amount": ["must be greater than 0"]}}'
+  remediation: >-
+    Read the errors map keys as request field paths and correct each. For "Invoice not paid",
+    poll invoice status or wait for the invoice.paid webhook before requesting the receipt.
+  retryable: false
+async_signals:
+- status: 202
+  title: Accepted - render pending
+  slug: pdf-render-pending
+  applies_to:
+  - AgreeWeb.API.V1.InvoiceController.pdf
+  - AgreeWeb.API.V1.AgreementController.pdf
+  description: >-
+    Not an error, but the only place the API uses a retry signal. When a PDF is not yet
+    rendered the endpoint returns 202 with a Retry-After header (default 3 seconds,
+    configurable as invoice_pdf_api_retry_after_seconds) and a body of
+    {"data": {"status": "pending", "retry_after_seconds": 3}}. Repeat the same GET until 200
+    with data.url.
+  retryable: true
+  honor: Retry-After
+coverage:
+  operations_total: 56
+  operations_with_4xx: 56
+  documented_4xx_responses: 141
+  documented_5xx_responses: 0

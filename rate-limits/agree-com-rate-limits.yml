@@ -1,0 +1,59 @@
+generated: '2026-09-12'
+method: probed
+source: >-
+  https://secure.agree.com/documentation + https://agree.com/developers +
+  live response headers from https://secure.agree.com/api/v1/contacts
+name: Agree.com Rate Limits
+description: >-
+  Agree.com publishes no rate limits and emits no rate-limit headers. An agent integrating
+  this API has no documented ceiling to respect and no runtime signal to back off on.
+limit_count: 0
+documented: false
+limits: []
+response_headers:
+  present: false
+  observed: []
+  expected_but_absent:
+  - X-RateLimit-Limit
+  - X-RateLimit-Remaining
+  - X-RateLimit-Reset
+  - RateLimit-Limit
+  - RateLimit-Remaining
+  - RateLimit-Reset
+  - Retry-After
+  note: >-
+    A live request to https://secure.agree.com/api/v1/contacts (HTTP 401) returned no
+    rate-limit header of any family. The only correlation header emitted is x-request-id.
+status_on_exhaustion: null
+status_note: >-
+  429 does not appear anywhere in the OpenAPI. Not one of the 56 operations documents a
+  429 response, so the behaviour when a limit is hit - if any limit exists - is undocumented.
+retry_after:
+  used: true
+  scope: Not for rate limiting.
+  detail: >-
+    Retry-After IS used by this API, but only as an async-render signal: GET /api/v1/invoices/{id}/pdf
+    and GET /api/v1/agreements/{id}/pdf return 202 with Retry-After (default 3 seconds) while a
+    PDF renders. It is a polling hint, not a throttle signal, and should not be read as one.
+x-evidence:
+- fetched: '2026-09-12'
+  url: https://secure.agree.com/api/v1/contacts
+  http_status: 401
+  headers_observed:
+  - x-request-id
+  - cache-control
+  - www-authenticate
+  finding: No rate-limit headers of any family present on a live response.
+- fetched: '2026-09-12'
+  url: https://agree.com/developers
+  http_status: 200
+  finding: The developer portal does not mention rate limits.
+- fetched: '2026-09-12'
+  url: https://secure.agree.com/documentation
+  http_status: 200
+  finding: >-
+    The string "rate limit" does not appear anywhere in the 170KB OpenAPI document, including
+    its extensive prose Introduction and tag guides.
+note: >-
+  limit_count 0 is a measured absence, not an unchecked field. Limits may well be enforced at
+  the edge (Cloudflare fronts secure.agree.com); nothing is published about them.

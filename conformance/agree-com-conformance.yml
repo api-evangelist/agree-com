@@ -1,0 +1,192 @@
+generated: '2026-09-12'
+method: searched
+source: >-
+  https://secure.agree.com/.well-known/oauth-authorization-server +
+  https://secure.agree.com/.well-known/oauth-protected-resource +
+  https://secure.agree.com/mcp (401 challenge) + https://agree.com/terms +
+  openapi/_original/agree-com-api-openapi-original.json
+name: Agree.com Standards Conformance
+description: >-
+  Agree.com's conformance profile is lopsided in an interesting way. Its agent-facing
+  authorization stack is genuinely standards-conformant - RFC 8414, RFC 9728, RFC 7591,
+  RFC 7009 and PKCE are all implemented correctly and were verified by probe. Its REST API
+  adopts almost no cross-cutting standards, and the company publishes no security or privacy
+  certifications at all.
+conformance:
+- id: oauth2
+  name: OAuth 2.0 / 2.1 Authorization Framework (RFC 6749 / draft-ietf-oauth-v2-1)
+  conforms: true
+  evidence: https://secure.agree.com/.well-known/oauth-authorization-server
+  detail: >-
+    Authorization code grant with refresh tokens, response_type code only, and mandatory PKCE
+    - the OAuth 2.1 profile. Implicit and password grants are absent, which is the correct
+    2.1 posture.
+  method: probed
+- id: rfc8414
+  name: OAuth 2.0 Authorization Server Metadata (RFC 8414)
+  conforms: true
+  evidence: https://secure.agree.com/.well-known/oauth-authorization-server
+  detail: >-
+    Served at the registered well-known path, HTTP 200, valid JSON, carrying issuer,
+    authorization_endpoint, token_endpoint, registration_endpoint, revocation_endpoint,
+    grant_types_supported, response_types_supported, code_challenge_methods_supported,
+    token_endpoint_auth_methods_supported, scopes_supported and op_policy_uri.
+  method: probed
+- id: rfc9728
+  name: OAuth 2.0 Protected Resource Metadata (RFC 9728)
+  conforms: true
+  evidence: https://secure.agree.com/.well-known/oauth-protected-resource
+  detail: >-
+    Served at the registered well-known path with resource, authorization_servers,
+    bearer_methods_supported, resource_documentation and resource_policy_uri. Critically, the
+    401 from the protected resource itself carries the RFC 9728 WWW-Authenticate challenge
+    with a resource_metadata parameter - 'Bearer realm="mcp",
+    resource_metadata="https://secure.agree.com/.well-known/oauth-protected-resource"' - which
+    is the discovery loop the MCP authorization specification requires and which most gated
+    MCP endpoints in this catalog omit.
+  method: probed
+- id: rfc7636
+  name: PKCE (RFC 7636)
+  conforms: true
+  evidence: https://secure.agree.com/.well-known/oauth-authorization-server
+  detail: code_challenge_methods_supported is ["S256"]. The insecure "plain" method is not offered.
+  method: probed
+- id: rfc7591
+  name: OAuth 2.0 Dynamic Client Registration (RFC 7591)
+  conforms: true
+  evidence: https://secure.agree.com/.well-known/oauth-authorization-server
+  detail: >-
+    registration_endpoint https://secure.agree.com/oauth/register is advertised. Combined with
+    token_endpoint_auth_method "none", this is what allows an arbitrary MCP client to connect
+    without a preregistered client ID.
+  method: probed
+- id: rfc7009
+  name: OAuth 2.0 Token Revocation (RFC 7009)
+  conforms: true
+  evidence: https://secure.agree.com/.well-known/oauth-authorization-server
+  detail: revocation_endpoint https://secure.agree.com/oauth/revoke is advertised.
+  method: probed
+- id: mcp
+  name: Model Context Protocol
+  conforms: true
+  evidence: https://secure.agree.com/mcp
+  detail: >-
+    A hosted remote MCP server is live at https://secure.agree.com/mcp. Protocol-level
+    conformance beyond the authorization layer could not be assessed - tools/list and
+    initialize both return 401 - so this records presence and a conformant authorization
+    handshake, not a verified tool surface.
+  method: probed
+- id: oidc
+  name: OpenID Connect
+  conforms: false
+  evidence: https://secure.agree.com/.well-known/openid-configuration
+  detail: HTTP 404. The authorization server is OAuth only; no OIDC discovery document is served.
+  method: probed
+- id: rfc9457
+  name: Problem Details for HTTP APIs (RFC 9457)
+  conforms: false
+  evidence: openapi/_original/agree-com-api-openapi-original.json
+  detail: >-
+    All 141 documented 4xx responses use application/json with either a scalar {"error": "..."}
+    or a field-keyed {"errors": {...}} envelope. No type URI, no problem+json media type.
+    See errors/agree-com-problem-types.yml.
+  method: derived
+- id: pagination
+  name: Pagination
+  conforms: true
+  evidence: https://secure.agree.com/documentation#section/Introduction/Pagination
+  detail: >-
+    Consistent page-number pagination across all list endpoints - page (default 1) and
+    page_size (default 10, max 100) - with a pagination envelope carrying page, page_size,
+    total_pages and total_entries. Not cursor-based, and no RFC 8288 Link headers.
+  method: searched
+- id: idempotency
+  name: Idempotent request replay
+  conforms: false
+  evidence: https://secure.agree.com/documentation
+  detail: >-
+    No idempotency key mechanism on any of the 25 mutating operations. See
+    conventions/agree-com-conventions.yml.
+  method: searched
+- id: rfc8594
+  name: Sunset HTTP Header (RFC 8594)
+  conforms: false
+  evidence: https://secure.agree.com/documentation
+  detail: No Sunset or Deprecation header is documented or observed; no deprecation policy exists.
+  method: searched
+- id: webhook-signing
+  name: Signed webhook delivery
+  conforms: true
+  evidence: https://secure.agree.com/documentation#tag/Webhooks
+  detail: >-
+    HMAC-SHA256 over the raw body with a per-endpoint secret, hex lowercase, delivered in
+    X-Webhook-Signature alongside X-Webhook-Timestamp, with constant-time comparison examples
+    in Node.js and Python. This is a conventional, correct implementation. It is not a
+    standard - the emerging RFC 9421 HTTP Message Signatures profile is not used.
+  method: searched
+- id: rfc9421
+  name: HTTP Message Signatures (RFC 9421)
+  conforms: false
+  evidence: https://secure.agree.com/documentation#tag/Webhooks
+  detail: Webhook signing is a bespoke HMAC scheme, not RFC 9421.
+  method: searched
+domain_standards:
+  market: Electronic signature and agreement execution
+  candidates_probed:
+  - id: esign-ueta
+    name: US ESIGN Act / UETA electronic signature validity
+    declared_in_contract: false
+    detail: >-
+      REWARD-ONLY CHECK, NOT MET. The Agreement and Recipient schemas carry signing_order,
+      current_signing_order, field_values, signed and executed states - a complete e-signature
+      data model - but nothing in the contract declares conformance to ESIGN or UETA: no
+      audit-trail or certificate-of-completion resource, no tamper-evidence hash, no
+      consent-to-electronic-records artifact, and no signer-authentication assertion is
+      exposed through the API. The Terms of Service contain the consumer-facing consent
+      clause ("YOU HEREBY AGREE TO THE USE OF ELECTRONIC SIGNATURES, CONTRACTS, ORDERS, AND
+      OTHER RECORDS"), which is a legal formality on the website rather than a machine-readable
+      conformance signal in the contract.
+    evidence: https://agree.com/terms
+  - id: eidas
+    name: eIDAS (EU) advanced or qualified electronic signature
+    declared_in_contract: false
+    detail: Not referenced anywhere in the contract, documentation, or terms.
+    evidence: https://agree.com/terms
+  - id: iso20022
+    name: ISO 20022 payment messaging
+    declared_in_contract: false
+    detail: >-
+      Payments are modelled as a simple amount/currency minor-unit object with a
+      payment_methods enum of card, ach and wire. No ISO 20022 message type, no pain/pacs
+      identifiers, and no remittance-information structure.
+    evidence: openapi/_original/agree-com-api-openapi-original.json
+  - id: x12-edi
+    name: ANSI X12 810 invoice / EDI
+    declared_in_contract: false
+    detail: No EDI shape is offered. Invoices are a proprietary JSON resource.
+    evidence: openapi/_original/agree-com-api-openapi-original.json
+  conforms: false
+  note: >-
+    No domain standard is declared by the contract. Recorded as an honest absence - this is a
+    reward-only dimension and the provider is not penalised for it.
+compliance_certifications:
+  published: false
+  certifications: []
+  trust_center: false
+  detail: >-
+    NO certifications are published. There is no trust center (trust.agree.com has no DNS
+    record, agree.com/trust and agree.com/security both return 404), and neither the Terms of
+    Service nor the Privacy Policy claims SOC 2, ISO 27001, PCI DSS, GDPR or CCPA compliance.
+    The Terms go further and disclaim regulatory fitness outright: "The Services are not
+    tailored to comply with industry-specific regulations (Health Insurance Portability and
+    Accountability Act (HIPAA), Federal Information Security Management Act (FISMA), etc.)."
+    For a platform that stores executed contracts and moves money by ACH, card and wire, this
+    is the most consequential published gap on the record. No Compliance or TrustCenter
+    pointer is emitted, because there is nothing to point at.
+  probed:
+  - url: https://agree.com/security
+    status: 404
+  - url: https://agree.com/trust
+    status: 404
+  - url: trust.agree.com
+    status: NXDOMAIN

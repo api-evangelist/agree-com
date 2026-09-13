@@ -1,0 +1,75 @@
+generated: '2026-09-12'
+method: probed
+source: https://secure.agree.com/.well-known/oauth-protected-resource
+name: Agree.com MCP Server
+description: >-
+  Agree.com operates a hosted, remote Model Context Protocol server at
+  https://secure.agree.com/mcp. It was discovered through RFC 9728 protected-resource
+  metadata rather than the documentation: the resource identifier in
+  /.well-known/oauth-protected-resource IS the MCP endpoint. The endpoint is live and
+  correctly gated - an anonymous POST returns HTTP 401 with an RFC 9728 WWW-Authenticate
+  challenge pointing back at the resource metadata - so the tool list and per-tool
+  inputSchema require an authenticated introspection this pipeline does not perform.
+deployment:
+  mode: remote
+  endpoint: https://secure.agree.com/mcp
+  auth: oauth
+  verified: probed
+  note: >-
+    Remote only. No stdio package, npx command, or local server is published by the
+    provider anywhere on agree.com, in any package registry, or in any GitHub
+    organization (agree.com operates no public GitHub org - both github.com/agree-com
+    and github.com/agreecom return 404).
+server:
+  transport: streamable-http
+  endpoint: https://secure.agree.com/mcp
+  protocol: MCP
+  authorization:
+    type: oauth2
+    flow: authorization_code
+    pkce: S256
+    issuer: https://secure.agree.com
+    authorization_endpoint: https://secure.agree.com/oauth/authorize
+    token_endpoint: https://secure.agree.com/oauth/token
+    registration_endpoint: https://secure.agree.com/oauth/register
+    revocation_endpoint: https://secure.agree.com/oauth/revoke
+    dynamic_client_registration: true
+    scopes:
+    - mcp
+    bearer_methods_supported:
+    - header
+    resource_metadata: https://secure.agree.com/.well-known/oauth-protected-resource
+    authorization_server_metadata: https://secure.agree.com/.well-known/oauth-authorization-server
+tools:
+  status: gated
+  count: null
+  note: >-
+    NOT RECORDED. tools/list requires an OAuth bearer token. The provider publishes no
+    tool catalog in documentation, no llms.txt, and no manifest, so there is no
+    unauthenticated source for tool names or input schemas. No candidate tool list is
+    derived here: the server demonstrably exists and inventing its tool names would
+    misrepresent a real surface. See mcp/agree-com-tool-crosswalk.yml for the REST
+    operations an authenticated introspection should be reconciled against.
+x-evidence:
+- fetched: '2026-09-12'
+  url: https://secure.agree.com/.well-known/oauth-protected-resource
+  http_status: 200
+  content_type: application/json
+  finding: 'resource: https://secure.agree.com/mcp'
+- fetched: '2026-09-12'
+  url: https://secure.agree.com/mcp
+  method: POST
+  body: '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+  http_status: 401
+  response: '{"error":"Missing Authorization header"}'
+  www_authenticate: Bearer realm="mcp", resource_metadata="https://secure.agree.com/.well-known/oauth-protected-resource"
+  finding: >-
+    Live and RFC 9728 conformant. The 401 carries a resource_metadata parameter, which
+    is the behaviour the MCP authorization spec requires and which most gated MCP
+    endpoints in the catalog omit.
+- fetched: '2026-09-12'
+  url: https://secure.agree.com/mcp
+  method: POST
+  body: initialize (protocolVersion 2025-06-18)
+  http_status: 401
+  finding: Initialize is gated too; no anonymous capability negotiation is possible.

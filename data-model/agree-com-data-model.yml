@@ -1,0 +1,232 @@
+generated: '2026-09-12'
+method: derived
+source: >-
+  openapi/_original/agree-com-api-openapi-original.json (components.schemas $ref graph and
+  *_id reference fields) + https://secure.agree.com/documentation ("How Resources Connect")
+name: Agree.com Data Model
+description: >-
+  The entity-relationship graph behind the Agree API, derived from 44 component schemas and
+  their $ref links and id-reference fields. Eleven of those schemas are core entities; the
+  remaining thirty-three are request parameter wrappers, response envelopes and error shapes.
+  Everything is tenanted under an Organization, which is never itself an addressable resource.
+identifiers:
+  format: UUID v4
+  prefixed: false
+  note: >-
+    No typed or prefixed identifiers (no inv_, agr_, con_). Every id is a bare UUID, so an
+    identifier carries no type information and a caller cannot tell an invoice id from an
+    agreement id by inspection. The one exception is the webhook signing secret, which uses a
+    whsec_ prefix.
+  example: 4a755746-ba45-4226-a669-aebc7ad3719c
+entities:
+- name: Organization
+  addressable: false
+  detail: >-
+    The tenancy root. It appears only as a foreign key - organization_id on Agreement, Contact
+    and Invoice - and has no endpoints, no schema, and no representation. Cross-organization
+    access fails with 403.
+- name: Agreement
+  schema: Agreement
+  properties: 24
+  endpoints: 8
+  detail: >-
+    A document requiring signature, always created from a Template. Carries signing_order,
+    current_signing_order, delivery_mode (embedded suppresses emails, managed has Agree send
+    them), status, version, starts_at, deleted_at (soft delete) and docs_url.
+  key_fields:
+  - organization_id
+  - invoice_template_id
+  - deleted_at
+  - current_signing_order
+  - delivery_mode
+- name: Template
+  schema: Template
+  properties: 3
+  endpoints: 2
+  detail: Read-only. Listed via GET /api/v1/agreements/templates and fetched by id. Agreements are created from templates; templates are not created through the API.
+- name: Signer
+  schema: Signer
+  properties: 7
+  detail: A recipient of an Agreement, resolved either by contact_id or by inline contact details. Exactly one signer must carry the owner role (the account holder).
+  key_fields:
+  - contact_id
+- name: Invoice
+  schema: Invoice
+  properties: 34
+  endpoints: 11
+  detail: >-
+    The richest entity in the model and the revenue core. Carries the full status lifecycle,
+    payment_link, payment_methods, reviewed_at (invoices with reviewed_at null are hidden from
+    default lists and skipped by the scheduler), and both internal and external identifiers.
+  key_fields:
+  - organization_id
+  - customer_id
+  - agreement_id
+  - destination_organization_id
+  - external_id
+  - external_customer_id
+- name: Contact
+  schema: Contact
+  properties: 9
+  endpoints: 5
+  detail: >-
+    The address book. Email is unique within an organization. Contacts are created explicitly
+    or implicitly - invoicing a new email address creates one. Deletion is soft; the record is
+    retained so historical invoices still render the contact.
+  key_fields:
+  - organization_id
+- name: Customer
+  schema: Customer
+  properties: 4
+  endpoints: 5
+  detail: >-
+    A distinct entity from Contact, and the distinction is not explained in the documentation.
+    Invoice carries both a customer_id reference and an embedded billing_contact, so the two
+    coexist on the same record.
+- name: WebhookEndpoint
+  schema: WebhookEndpoint
+  properties: 7
+  endpoints: 6
+  detail: >-
+    A registered delivery URL with an events subscription array, active flag and
+    failure_count. WebhookEndpointWithSecret is the create-time variant that additionally
+    carries the whsec_ secret, returned exactly once.
+- name: Money
+  schema: Money
+  properties: 2
+  detail: A value object - integer amount in minor units plus an ISO currency string. Embedded, never addressable.
+- name: RecurringOptions
+  schema: RecurringOptions
+  properties: 13
+  detail: >-
+    An embedded schedule value object on Invoice - schedule, repeat_frequency, repeat_unit,
+    repeat_on_type, repeat_on_day, recurring_end_type and reminder_schedule. This is what
+    turns a one-time invoice into a retainer.
+- name: BillingContact
+  schema: BillingContact
+  properties: 4
+  detail: >-
+    An embedded upsert shape, not a reference. Documented as "Creates or updates a contact" -
+    posting an invoice with a billing_contact email either finds or creates the Contact.
+relationships:
+- from: Agreement
+  to: Organization
+  type: belongs_to
+  via: organization_id
+- from: Agreement
+  to: Template
+  type: belongs_to
+  via: template_id
+  note: Set at creation via AgreementCreateParams.template_id; the persisted Agreement exposes invoice_template_id.
+- from: Agreement
+  to: Signer
+  type: has_many
+  via: recipients[]
+  note: $ref to Signer in the Agreement schema.
+- from: Signer
+  to: Contact
+  type: belongs_to
+  via: contact_id
+  note: Optional - a recipient may instead be supplied inline as a RecipientContact.
+- from: Invoice
+  to: Organization
+  type: belongs_to
+  via: organization_id
+- from: Invoice
+  to: Customer
+  type: belongs_to
+  via: customer_id
+- from: Invoice
+  to: Agreement
+  type: belongs_to
+  via: agreement_id
+  note: >-
+    The join that makes the product what it is - an invoice can be attached to the agreement
+    that authorized it, which is how "sign and pay in one flow" works.
+- from: Invoice
+  to: BillingContact
+  type: has_one
+  via: billing_contact
+  note: Embedded upsert, resolved to a Contact by email.
+- from: Invoice
+  to: Money
+  type: has_one
+  via: amount
+- from: Invoice
+  to: RecurringOptions
+  type: has_one
+  via: recurring_options
+- from: Invoice
+  to: Organization
+  type: belongs_to
+  via: destination_organization_id
+  note: A second organization reference - the receiving side of the transaction.
+- from: Contact
+  to: Organization
+  type: belongs_to
+  via: organization_id
+- from: Contact
+  to: Invoice
+  type: has_many
+  via: inverse of Invoice.billing_contact
+  note: Documented rather than expressed in the schema - "existing invoices will still show the contact information".
+- from: WebhookEndpoint
+  to: Organization
+  type: belongs_to
+  via: implicit tenancy
+state_machines:
+- entity: Invoice
+  field: status
+  states:
+  - created
+  - sending
+  - sent
+  - due
+  - processing
+  - paid
+  - failed
+  - canceled
+  - refunded
+  - draft
+  note: >-
+    The enum in the schema lists created, due, sent, canceled, paid, failed, refunded, draft.
+    The documentation additionally describes sending (a temporary status returned by
+    create_and_send and send while delivery is async) and processing (payment initiated,
+    awaiting confirmation), which are not in the enum. A consumer switching on status must
+    handle two values the contract does not declare.
+  terminal:
+  - paid
+  - canceled
+  - refunded
+- entity: Agreement
+  field: status
+  states:
+  - drafted
+  - sent
+  - signed
+  - executed
+  note: >-
+    Derived from the webhook catalog (agreement.created, agreement.sent, agreement.signed,
+    agreement.executed) and the schema example (status "drafted"). The Agreement schema does
+    not declare a status enum, so this is inferred from the event names rather than read from
+    the contract.
+external_identifiers:
+  fields:
+  - external_id
+  - external_customer_id
+  detail: >-
+    Invoice carries two caller-supplied external identifier fields. These are the only place
+    an integrator can correlate an Agree record with a record in their own system - and, in
+    the absence of any idempotency key, the only handle available for building deduplication
+    on the caller's side.
+gaps:
+- >-
+  Customer and Contact are two entities for what appear to be overlapping concepts, and no
+  documentation explains when to use which.
+- >-
+  There is no Payment entity. Payments are only visible as invoice status transitions and
+  webhook events; there is no payment resource to fetch, and therefore no way to retrieve a
+  payment method, processor reference, or settlement detail through the API.
+- >-
+  Templates are read-only through the API, so the agreement authoring step must happen in
+  the dashboard. An agent can send a contract but cannot create the contract.

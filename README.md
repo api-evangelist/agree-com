@@ -64,5 +64,40 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-Agree.com is a company surfaced via the API Evangelist harvest backlog (source: secondary-market) and added to the network as a stub for full-pipeline profiling.
-- https://www.nasdaqprivatemarket.com/
+Agree.com is a contract-to-cash platform that pairs free, unlimited e-signatures with
+invoicing, billing and integrated payments (ACH, card, wire), monetizing money movement rather
+than signatures. It raised a $7.2M seed round led by Pelion Venture Partners in May 2025 after
+a $3M pre-seed led by Better Tomorrow Ventures, and markets an "agentic revenue operating
+system" of named AI agents for contracts, billing, collections, recovery, reconciliation and
+insight.
+
+## What this profile found
+
+- **A real OpenAPI 3.0 contract** — 37 paths, 56 operations, 44 schemas, 6 tags, every
+  operation carrying a unique operationId, summary and description. It is served anonymously
+  at `https://secure.agree.com/documentation/openapi`, discovered from the `spec-url`
+  attribute of the Redoc page at `https://secure.agree.com/documentation`.
+- **A live hosted MCP server** at `https://secure.agree.com/mcp`, found by probing RFC 9728
+  protected-resource metadata. It is not documented anywhere on the site — `agree.com/developers`
+  advertises MCP as a one-line tile with no endpoint. The server is OAuth-gated (`tools/list`
+  returns 401), fronted by an OAuth 2.1 authorization server with PKCE S256, dynamic client
+  registration and a single `mcp` scope.
+- **A documented base URL that does not exist.** Agree's own documentation states "All API
+  requests should be made to: `https://api.agree.com/api/v1`" and every curl example uses that
+  host. `api.agree.com` has no DNS record. The working base is the OpenAPI `servers[]` entry,
+  `https://secure.agree.com`.
+- **No idempotency on any of 25 mutating operations**, including
+  `POST /api/v1/invoices/create_and_send`, which creates an invoice and emails a payment link
+  in one irreversible call.
+- **No refund operation.** The `refunded` invoice status and the `invoice.refunded` webhook
+  both exist, but no refund, void or reversal endpoint appears anywhere in the API.
+- **A complete webhook catalog** — 12 events, HMAC-SHA256 signed, five-attempt exponential
+  backoff — captured as a generated AsyncAPI 3.0 document.
+- **No SDKs, no CLI, no GitHub organization, no status page, no changelog, no deprecation
+  policy, and no published compliance certifications.**
+
+See `apis.yml` for the full artifact index.
+
+- https://agree.com/
+- https://agree.com/developers
+- https://secure.agree.com/documentation

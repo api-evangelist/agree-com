@@ -1,18 +1,91 @@
 aid: agree-com
 name: Agree.com
-description: 'Agree.com is a company surfaced via the API Evangelist harvest backlog (source: secondary-market)
-  and added to the network as a stub for full-pipeline profiling.'
+description: >-
+  Agree.com is a contract-to-cash platform that combines free, unlimited e-signatures with
+  invoicing, billing and integrated payments, positioning itself directly against DocuSign and
+  Bill.com by giving the signature product away and monetizing the money movement that follows
+  it. The company raised a $7.2M seed round led by Pelion Venture Partners in May 2025 after a
+  $3M pre-seed led by Better Tomorrow Ventures. It markets an "agentic revenue operating system"
+  built from named AI agents for contracts, billing, collections, recovery, reconciliation and
+  insight. For developers it publishes a 56-operation REST API covering agreements, invoices,
+  contacts, customers, cash-flow and recovery reporting, and webhooks, described by a real
+  OpenAPI 3.0 document served anonymously at secure.agree.com/documentation/openapi, plus a
+  hosted remote MCP server at secure.agree.com/mcp discoverable through RFC 9728 protected
+  resource metadata and guarded by an OAuth 2.1 authorization server with PKCE and dynamic
+  client registration.
+image: https://agree.com/img/social/social-media-card.png
 url: https://raw.githubusercontent.com/api-evangelist/agree-com/refs/heads/main/apis.yml
 x-type: company
 x-source: harvest:secondary-market
-x-tier: stub
-x-tier-reason: harvest
 specificationVersion: '0.20'
 created: '2026-09-12'
 modified: '2026-09-12'
 tags:
-- Company
-apis: []
+- Agreements
+- Electronic Signature
+- Contract Management
+- Invoicing
+- Billing
+- Payments
+- Accounts Receivable
+- Fintech
+- Financial-Services
+- Webhooks
+- MCP
+- agent-native
+position: Producing
+apis:
+- aid: agree-com:agree-api
+  name: Agree API
+  description: >-
+    REST API for the Agree contract-to-cash platform. 56 operations across six resources:
+    Agreements (create from templates, assign signature fields to recipients, send, fetch
+    executed PDFs, soft delete), Invoices (create, create-and-send in one call, recurring
+    schedules, mark as sent or paid, invoice and receipt PDFs), Contacts and Customers
+    (address book, soft delete), Reports (cash-flow stats and forecast, revenue by customer
+    and MRR, recovery aging and leakage analysis), and Webhooks (endpoint registration with
+    HMAC-SHA256 signed delivery over twelve event types). Authentication is a bearer API key
+    issued from Settings > API Keys in the dashboard. Responses are wrapped in a data envelope
+    with page/page_size pagination; validation failures return a field-keyed errors object
+    rather than RFC 9457 problem+json.
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  image: https://agree.com/img/social/social-media-card.png
+  tags:
+  - Agreements
+  - Electronic Signature
+  - Invoicing
+  - Payments
+  - Contacts
+  - Reporting
+  - Webhooks
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-api-openapi.json
+  - type: Documentation
+    url: https://secure.agree.com/documentation
+  - type: APIReference
+    url: https://secure.agree.com/documentation
+  - type: GettingStarted
+    url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+  - type: Authentication
+    url: https://secure.agree.com/documentation#section/Introduction/Authentication
+  - type: Overlay
+    url: overlays/agree-com-api-overlay.yaml
+  - type: ErrorCatalog
+    url: errors/agree-com-problem-types.yml
+  - type: DataModel
+    url: data-model/agree-com-data-model.yml
+  - type: Conventions
+    url: conventions/agree-com-conventions.yml
+  - type: AsyncAPI
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: Webhooks
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: MCPServer
+    url: mcp/agree-com-mcp.yml
+  - type: ToolCrosswalk
+    url: mcp/agree-com-tool-crosswalk.yml
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com
@@ -20,4 +93,67 @@ maintainers:
   email: info@apis.io
 common:
 - type: Website
-  url: https://www.nasdaqprivatemarket.com/
+  url: https://agree.com/
+- type: DeveloperPortal
+  url: https://agree.com/developers
+- type: Documentation
+  url: https://secure.agree.com/documentation
+- type: APIReference
+  url: https://secure.agree.com/documentation
+- type: GettingStarted
+  url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+- type: Pricing
+  url: https://agree.com/pricing
+- type: SignUp
+  url: https://secure.agree.com/signup
+- type: Login
+  url: https://secure.agree.com/signin
+- type: TermsOfService
+  url: https://agree.com/terms
+- type: PrivacyPolicy
+  url: https://agree.com/privacy
+- type: Integrations
+  url: https://agree.com/integrations
+- type: OpenAPI
+  url: openapi/agree-com-api-openapi.json
+- type: MCPServer
+  url: mcp/agree-com-mcp.yml
+- type: WellKnown
+  url: well-known/agree-com-well-known.yml
+- type: Authentication
+  url: authentication/agree-com-authentication.yml
+- type: OAuthScopes
+  url: scopes/agree-com-scopes.yml
+- type: Conventions
+  url: conventions/agree-com-conventions.yml
+- type: ErrorCatalog
+  url: errors/agree-com-problem-types.yml
+- type: DataModel
+  url: data-model/agree-com-data-model.yml
+- type: Lifecycle
+  url: lifecycle/agree-com-lifecycle.yml
+- type: Conformance
+  url: conformance/agree-com-conformance.yml
+- type: AsyncAPI
+  url: asyncapi/agree-com-webhooks-asyncapi.yml
+- type: Webhooks
+  url: asyncapi/agree-com-webhooks-asyncapi.yml
+- type: AgentSkill
+  url: skills/_index.yml
+- type: LLMsTxt
+  url: llms/agree-com-llms.txt
+- type: Overlay
+  url: overlays/agree-com-api-overlay.yaml
+- type: Plans
+  url: plans/agree-com-plans-pricing.yml
+- type: RateLimits
+  url: rate-limits/agree-com-rate-limits.yml
+- type: Packages
+  url: packages/agree-com-packages.yml
+- type: DomainSecurity
+  url: security/agree-com-domain-security.yml
+x-enrichment:
+  date: '2026-09-12'
+  status: enriched
+  artifacts_added: 25
+  pass: local-v3

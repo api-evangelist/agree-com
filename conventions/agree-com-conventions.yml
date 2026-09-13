@@ -1,0 +1,229 @@
+generated: '2026-09-12'
+method: searched
+source: >-
+  https://secure.agree.com/documentation (Introduction, and the Invoices, Agreements, Contacts
+  and Webhooks tag guides) + openapi/_original/agree-com-api-openapi-original.json
+name: Agree.com API Conventions
+description: >-
+  Cross-cutting runtime semantics for the Agree REST API. The API is a conventional Phoenix/
+  Elixir JSON API: data-wrapped responses, page-number pagination, bearer key auth and a
+  field-keyed validation envelope. It is well documented in prose. The two things an agent
+  most needs before it moves money - replay protection and a reversal path with a stated
+  window - are the two things it does not publish.
+base_url: https://secure.agree.com/api/v1
+auth:
+  style: bearer-api-key
+  header: Authorization
+  format: Bearer <API_KEY>
+  scoped: false
+  detail: authentication/agree-com-authentication.yml
+idempotency:
+  coverage: none
+  supported: false
+  header: null
+  scope: []
+  retention: null
+  detail: >-
+    Agree.com publishes no idempotency mechanism for its REST API. There is no Idempotency-Key
+    header, no client-supplied request identifier, no natural-key deduplication, and no
+    documented replay behaviour on any of the 25 mutating operations. The string "idempotency"
+    appears exactly once in the entire specification, and it is advice pointed at the consumer
+    rather than a guarantee offered by the provider: under Webhooks > Best Practices,
+    "Handle duplicates - Webhooks may occasionally be sent more than once; use idempotency."
+  risk: >-
+    POST /api/v1/invoices/create_and_send both creates an invoice and emails a payment link to
+    a customer. A retried request after a timeout sends a second invoice for the same amount,
+    and nothing in the API prevents it or lets a caller detect it. The same applies to
+    POST /api/v1/agreements/create_and_send, which sends a contract for signature.
+  source: https://secure.agree.com/documentation
+reversibility:
+  grade: documented
+  detail: >-
+    Reversal paths exist and are documented for the agreement and invoice lifecycles, but no
+    operation states a window, so this grades documented rather than verified. No time limit,
+    cutoff, or point of no return is published anywhere in the specification or the
+    documentation.
+  write_surfaces:
+  - surface: Invoice send / collection
+    write_operations:
+    - AgreeWeb.API.V1.InvoiceController.create
+    - AgreeWeb.API.V1.InvoiceController.create_and_send
+    - AgreeWeb.API.V1.InvoiceController.send
+    reversal:
+      operation: AgreeWeb.API.V1.InvoiceController.delete
+      method: DELETE /api/v1/invoices/{id}
+      effect: >-
+        Cancels the invoice. Documented as the trigger for the invoice.canceled webhook -
+        "invoice.canceled | Invoice was canceled | After DELETE /invoices". The status enum
+        carries canceled, described as "Invoice was canceled (no payment expected)".
+      window: null
+      window_note: >-
+        NOT STATED. The documentation does not say whether an invoice can be canceled after it
+        has been sent, after it is due, or once payment is processing, nor what happens to an
+        outstanding payment link when it is.
+      grade: documented
+  - surface: Payment capture
+    write_operations:
+    - AgreeWeb.API.V1.InvoiceController.mark_as_paid
+    reversal:
+      operation: null
+      method: null
+      effect: >-
+        NO API REVERSAL EXISTS. This is the most important finding in this file. The invoice
+        status enum includes refunded and the webhook catalog includes invoice.refunded
+        ("Invoice payment was refunded | After refund is processed"), so refunds demonstrably
+        happen in the product - but there is no refund operation, no void, and no reversal
+        endpoint anywhere in the 56-operation API. An agent that collects a payment through
+        this API cannot return it through this API; the refund must be performed out of band.
+      window: null
+      grade: none
+  - surface: Agreement send / signature
+    write_operations:
+    - AgreeWeb.API.V1.AgreementController.create
+    - AgreeWeb.API.V1.AgreementController.create_and_send
+    - AgreeWeb.API.V1.AgreementController.send
+    reversal:
+      operation: AgreeWeb.API.V1.AgreementController.delete
+      method: DELETE /api/v1/agreements/{id}
+      effect: >-
+        Soft delete. "Deletes an agreement by ID (soft delete)." The Agreement schema carries
+        deleted_at, "When the agreement was deleted (soft delete)".
+      window: null
+      window_note: >-
+        NOT STATED. No restore or undelete operation is exposed, so from the API's point of
+        view the soft delete is one-way even though the record is retained server-side. The
+        documentation does not say whether an already-executed agreement can be deleted.
+      grade: documented
+  - surface: Contact management
+    write_operations:
+    - AgreeWeb.API.V1.ContactController.create
+    - AgreeWeb.API.V1.ContactController.update
+    reversal:
+      operation: AgreeWeb.API.V1.ContactController.delete
+      method: DELETE /api/v1/contacts/{id}
+      effect: >-
+        Soft delete, explicitly documented: "This performs a soft delete. The contact record is
+        retained for historical purposes (existing invoices will still show the contact
+        information), but will no longer appear in your contacts list."
+      window: null
+      grade: documented
+dry_run_mode:
+  supported: false
+  detail: >-
+    No preview, simulate, validate-only or dry-run parameter exists on any operation. The
+    closest thing is the two-step create-then-send pattern: POST /api/v1/invoices creates
+    without sending, and the documentation recommends it explicitly - "You can also create the
+    invoice first with POST /api/v1/invoices, then send it later with
+    POST /api/v1/invoices/:id/send if you need to review or modify it before sending." The
+    same split exists for agreements. That is a genuine staging path and the safest way for an
+    agent to work, but it is a product pattern, not a dry-run facility.
+  recommended_agent_pattern: >-
+    Prefer create + send over create_and_send. It is the only way to inspect and correct a
+    document before it reaches a customer, and given that no idempotency exists it is also the
+    only way to make the irreversible step a separate, deliberate call.
+pagination:
+  style: page-number
+  parameters:
+  - name: page
+    default: 1
+    description: Page number to retrieve
+  - name: page_size
+    default: 10
+    max: 100
+    description: Number of items per page
+  response_envelope: pagination
+  response_fields:
+  - page
+  - page_size
+  - total_pages
+  - total_entries
+  cursor_supported: false
+  example:
+    data: []
+    pagination:
+      page: 1
+      page_size: 10
+      total_pages: 5
+      total_entries: 42
+  source: https://secure.agree.com/documentation#section/Introduction/Pagination
+response_envelope:
+  success: '{"data": {...}}'
+  list: '{"data": [...], "pagination": {...}}'
+  error_scalar: '{"error": "..."}'
+  error_fields: '{"errors": {"<field>": ["...", "..."]}}'
+  detail: errors/agree-com-problem-types.yml
+filtering:
+  supported: true
+  detail: >-
+    List endpoints accept resource-specific filters. Invoices support statuses (comma
+    separated), date_type with date_start/date_end and date_timezone (default Etc/UTC), and
+    amount_min/amount_max in dollars.
+field_expansion:
+  supported: false
+  note: No expand, include, or fields/sparse-fieldset parameter is documented.
+metadata:
+  supported: false
+  note: >-
+    No free-form metadata bag on any resource. The closest is the invoice memo string. An
+    agent has nowhere to stash its own correlation identifier, which compounds the missing
+    idempotency - there is no way to tag a write and later detect that it already happened.
+request_id_tracing:
+  supported: true
+  header: x-request-id
+  direction: response
+  detail: >-
+    Observed on a live response from https://secure.agree.com/api/v1/contacts (HTTP 401):
+    x-request-id: GNS3aydR7g0MzwUALxLC. The header is emitted but is not documented, and no
+    support workflow references it.
+  method: probed
+versioning:
+  style: uri-path
+  current: v1
+  pattern: /api/v{n}/
+  spec_version: 1.0.0
+  detail: lifecycle/agree-com-lifecycle.yml
+rate_limit_signaling:
+  supported: false
+  headers: []
+  status_on_exhaustion: null
+  detail: rate-limits/agree-com-rate-limits.yml
+async_operations:
+  pattern: 202 + Retry-After polling
+  applies_to:
+  - GET /api/v1/invoices/{id}/pdf
+  - GET /api/v1/agreements/{id}/pdf
+  detail: >-
+    When the PDF is not yet rendered the endpoint returns 202 with a Retry-After header
+    (default 3 seconds) and a body of {"data": {"status": "pending", "retry_after_seconds": 3}}.
+    Repeat the same GET until 200 with data.url. Documented rationale: "This avoids holding
+    many long-lived HTTP connections when PDFs are slow or the render queue is busy."
+webhooks:
+  detail: asyncapi/agree-com-webhooks-asyncapi.yml
+  signature: X-Webhook-Signature (HMAC-SHA256, hex, lowercase)
+  timestamp: X-Webhook-Timestamp
+  retry: 5 attempts - immediate, ~1 min, ~5 min, ~30 min, ~2 hours
+  delivery_semantics: at-least-once
+  delivery_note: >-
+    The provider states duplicates are possible and tells consumers to use idempotency on
+    their side, while offering none on its own write surface.
+documentation_defects:
+- id: base-url-host-does-not-resolve
+  severity: high
+  detail: >-
+    Every curl example in the documentation - the quick start, and each of the Invoices,
+    Agreements, Contacts and Webhooks guides - targets https://api.agree.com/api/v1, and the
+    Introduction states plainly "All API requests should be made to: https://api.agree.com/api/v1".
+    The host api.agree.com HAS NO DNS RECORD. The OpenAPI servers[] block names
+    https://secure.agree.com, which resolves and answers (GET /api/v1/contacts returns 401).
+    Copy-pasting any documented example fails at name resolution.
+  evidence:
+  - 'dig +short api.agree.com -> (empty, NXDOMAIN)'
+  - 'curl https://secure.agree.com/api/v1/contacts -> HTTP 401'
+  - 'openapi servers[0].url -> https://secure.agree.com'
+- id: webhook-path-mismatch
+  severity: medium
+  detail: >-
+    The Webhooks guide documents the endpoint as /api/v1/webhook_endpoints in every example
+    (create, list, update, delete, test). The OpenAPI paths are /api/v1/webhooks and
+    /api/v1/webhooks/test. The prose and the machine-readable contract disagree about the
+    path of the resource, in the same document.

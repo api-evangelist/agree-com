@@ -1,0 +1,93 @@
+generated: '2026-09-12'
+method: searched
+source: https://agree.com/pricing
+name: Agree.com Plans and Pricing
+description: >-
+  Agree.com gives the e-signature product away and charges for money movement. Plans are
+  gated by annual payment volume rather than by seats or API calls, and the transaction rate
+  is the real price. No API-specific plan, quota, or metered API pricing is published.
+plan_count: 3
+currency: USD
+billing_periods:
+- monthly
+- yearly
+pricing_model: subscription + transaction fees, tiered by annual payment volume
+plans:
+- name: Starter
+  price: 0
+  currency: USD
+  period: month
+  seats: 1
+  volume_cap: $1M annual volume
+  included:
+  - E-signatures
+  - Basic templates
+  - Basic reporting
+  - Email support
+  transaction_fees:
+    available: false
+    note: Payment processing is not available on this tier.
+  notes: No credit card required. The free e-signature offer is uncapped and not a trial.
+- name: Growth
+  price: 599
+  currency: USD
+  period: month
+  annual_discount: 20% when billed yearly
+  seats: 10
+  volume_cap: $10M annual volume
+  included:
+  - Everything in Starter
+  - Unlimited agreements
+  - Automated billing & invoicing
+  - Payment collection & scheduling
+  - Automated recovery
+  - Standard integrations
+  - Advanced reporting & analytics
+  transaction_fees:
+    available: true
+    rate_card: standard
+    card: 3.5%
+    ach: 0.8%
+    wire: 0.8%
+  notes: Marked "Most popular" on the pricing page.
+- name: Enterprise
+  price: null
+  price_note: Custom pricing - contact sales.
+  currency: USD
+  period: null
+  seats: unlimited
+  volume_cap: $100M annual volume
+  included:
+  - Everything in Growth
+  - Custom contract workflows
+  - Custom integrations & API access
+  - Dedicated account manager
+  - SLA & priority support
+  - SSO & advanced security
+  transaction_fees:
+    available: true
+    rate_card: volume
+    card: Interchange Plus
+    ach: free
+    wire: free
+  notes: >-
+    The only tier that names API access as a feature ("Custom integrations & API access"),
+    and the only tier with an SLA.
+api_access:
+  metered: false
+  api_specific_plan: false
+  detail: >-
+    No plan meters API calls and no API-specific pricing is published. The API is not listed as
+    a feature of Starter or Growth; only Enterprise names "Custom integrations & API access".
+    In practice the API documentation instructs any user to generate a key from Settings >
+    API Keys with no tier qualification stated, so whether API access is genuinely gated to
+    Enterprise is ambiguous from public material. Recorded as published, unresolved - not
+    guessed either way.
+findings:
+- >-
+  Volume caps, not seats or calls, are the limiting dimension. A consumer choosing a tier is
+  choosing an annual payment-volume ceiling.
+- >-
+  The business model is the story here: free unlimited e-signature is the acquisition product
+  and the 3.5% card / 0.8% ACH take on money movement is the revenue. This is why the company
+  positions against DocuSign and Bill.com simultaneously.

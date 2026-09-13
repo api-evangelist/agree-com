@@ -1,0 +1,99 @@
+generated: '2026-09-12'
+method: probed
+source: https://secure.agree.com/.well-known/oauth-protected-resource
+name: Agree.com Well-Known Discovery Documents
+description: >-
+  Probe of the RFC 8615 well-known namespace across every host this record knows:
+  the registrable domain (agree.com), its www alias, and the API/application host
+  named in the OpenAPI servers[] block (secure.agree.com). Two real documents are
+  served, both on secure.agree.com, and together they describe an OAuth 2.1
+  authorization server plus an RFC 9728 protected resource whose resource identifier
+  is the provider's hosted MCP endpoint.
+hosts:
+- host: agree.com
+  note: >-
+    Next.js/Vercel marketing site. Every probed path returns HTTP 404 with the
+    site's HTML 404 page (62,243 bytes). No well-known documents are served here.
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+- host: www.agree.com
+  note: 308 permanent redirect to the apex agree.com for every path; no documents of its own.
+  documents:
+  - path: /.well-known/security.txt
+    status: 308
+  - path: /.well-known/openid-configuration
+    status: 308
+  - path: /.well-known/oauth-authorization-server
+    status: 308
+  - path: /.well-known/oauth-protected-resource
+    status: 308
+  - path: /.well-known/api-catalog
+    status: 308
+  - path: /.well-known/ai-plugin.json
+    status: 308
+  - path: /.well-known/agent-card.json
+    status: 308
+  - path: /.well-known/agent.json
+    status: 308
+- host: secure.agree.com
+  note: >-
+    The application and API host (the OpenAPI servers[] entry). Serves two real
+    JSON discovery documents; all other probed paths return a 9-byte plain
+    "Not Found" body, so the 404s here are genuine absences rather than SPA shells.
+  documents:
+  - path: /.well-known/oauth-authorization-server
+    status: 200
+    file: agree-com-oauth-authorization-server.json
+    content_type: application/json
+    note: >-
+      RFC 8414 authorization server metadata. issuer https://secure.agree.com,
+      authorization_code + refresh_token grants, PKCE S256 required,
+      RFC 7591 dynamic client registration at /oauth/register, RFC 7009
+      revocation at /oauth/revoke, and a single supported scope, "mcp".
+  - path: /.well-known/oauth-protected-resource
+    status: 200
+    file: agree-com-oauth-protected-resource.json
+    content_type: application/json
+    note: >-
+      RFC 9728 protected resource metadata. The protected resource is
+      https://secure.agree.com/mcp - the provider's hosted MCP endpoint - with
+      https://secure.agree.com as its authorization server and bearer tokens
+      carried in the Authorization header.
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+findings:
+- >-
+  The two served documents are how the hosted MCP endpoint was discovered. Nothing
+  on agree.com/developers publishes the MCP URL; the site advertises "MCP - Connect
+  Agree to AI agents through MCP" as a one-line teaser with no endpoint and no
+  configuration snippet. The endpoint is only machine-discoverable via RFC 9728.
+- >-
+  No security.txt is served on any host, so no SecurityTxt pointer is emitted.
+- >-
+  No A2A agent card is served on any host. Per the pipeline contract no a2a/
+  artifact is written.

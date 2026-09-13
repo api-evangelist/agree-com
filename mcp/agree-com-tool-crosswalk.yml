@@ -1,0 +1,391 @@
+generated: '2026-09-12'
+method: derived
+source: >-
+  openapi/_original/agree-com-api-openapi-original.json +
+  https://secure.agree.com/.well-known/oauth-protected-resource (MCP endpoint) +
+  https://secure.agree.com/mcp (tools/list, HTTP 401)
+name: Agree.com MCP <-> REST Tool Crosswalk
+description: >-
+  Agree.com publishes BOTH a 56-operation REST OpenAPI and a hosted MCP server, which is
+  exactly the condition this crosswalk exists for. It cannot be completed today: the MCP
+  tool list is OAuth-gated (tools/list returns 401) and the provider publishes no tool
+  catalog in documentation, no llms.txt, and no manifest. Rather than guess tool names,
+  this file records the honest state - an empty crosswalk, a fully enumerated rest_only[]
+  of every public REST operation, and the gating that blocks the binding - so that an
+  authenticated introspection has a complete reconciliation target and so the divergence
+  between the two surfaces is not silently recorded as "no divergence".
+surfaces:
+  openapi:
+    file: openapi/agree-com-api-openapi.json
+    spec_version: 3.0.0
+    server: https://secure.agree.com
+    base_path: /api/v1
+    operations: 56
+    gated: false
+    note: The specification document itself is served anonymously at https://secure.agree.com/documentation/openapi.
+  mcp:
+    url: https://secure.agree.com/mcp
+    gated: true
+    auth: oauth2 authorization_code + PKCE S256, scope "mcp"
+    tools_listed: null
+    note: >-
+      tools/list and initialize both return HTTP 401 "Missing Authorization header" with an
+      RFC 9728 WWW-Authenticate challenge. Tool names and inputSchema require an
+      authenticated introspection.
+  graphql:
+    present: false
+crosswalk: []
+mcp_only: []
+coverage:
+  mcp_tools_total: null
+  mcp_tools_mapped: 0
+  rest_operations_total: 56
+  rest_operations_mapped: 0
+  rest_only: 56
+  status: blocked-by-auth
+  note: >-
+    Zero mapped is a measurement of the gate, not of the provider. Re-run this crosswalk
+    with an OAuth token to bind each tool to the operationIds below.
+rest_only:
+# --- Agreements (11 operations) ---
+- operation: AgreeWeb.API.V1.AgreementController.index
+  method: GET
+  path: /api/v1/agreements
+  tag: Agreements
+  summary: "List agreements"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.create
+  method: POST
+  path: /api/v1/agreements
+  tag: Agreements
+  summary: "Create agreement from template"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.create_and_send
+  method: POST
+  path: /api/v1/agreements/create_and_send
+  tag: Agreements
+  summary: "Create and send agreement"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.templates
+  method: GET
+  path: /api/v1/agreements/templates
+  tag: Agreements
+  summary: "List agreement templates"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.show_template
+  method: GET
+  path: /api/v1/agreements/templates/{id}
+  tag: Agreements
+  summary: "Get template"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.delete
+  method: DELETE
+  path: /api/v1/agreements/{id}
+  tag: Agreements
+  summary: "Delete agreement"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.show
+  method: GET
+  path: /api/v1/agreements/{id}
+  tag: Agreements
+  summary: "Get agreement"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.update (2)
+  method: PATCH
+  path: /api/v1/agreements/{id}
+  tag: Agreements
+  summary: "Update agreement"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.update
+  method: PUT
+  path: /api/v1/agreements/{id}
+  tag: Agreements
+  summary: "Update agreement"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.pdf
+  method: GET
+  path: /api/v1/agreements/{id}/pdf
+  tag: Agreements
+  summary: "Download agreement PDF"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.AgreementController.send
+  method: POST
+  path: /api/v1/agreements/{id}/send
+  tag: Agreements
+  summary: "Send agreement"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+# --- Contacts (6 operations) ---
+- operation: AgreeWeb.API.V1.ContactController.index
+  method: GET
+  path: /api/v1/contacts
+  tag: Contacts
+  summary: "List contacts"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ContactController.create
+  method: POST
+  path: /api/v1/contacts
+  tag: Contacts
+  summary: "Create contact"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ContactController.delete
+  method: DELETE
+  path: /api/v1/contacts/{id}
+  tag: Contacts
+  summary: "Delete contact"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ContactController.show
+  method: GET
+  path: /api/v1/contacts/{id}
+  tag: Contacts
+  summary: "Get contact"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ContactController.update (2)
+  method: PATCH
+  path: /api/v1/contacts/{id}
+  tag: Contacts
+  summary: "Update contact"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ContactController.update
+  method: PUT
+  path: /api/v1/contacts/{id}
+  tag: Contacts
+  summary: "Update contact"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+# --- Customers (5 operations) ---
+- operation: AgreeWeb.API.V1.CustomerController.index
+  method: GET
+  path: /api/v1/customers
+  tag: Customers
+  summary: "List customers"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.CustomerController.create
+  method: POST
+  path: /api/v1/customers
+  tag: Customers
+  summary: "Create customer"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.CustomerController.show
+  method: GET
+  path: /api/v1/customers/{id}
+  tag: Customers
+  summary: "Get customer"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.CustomerController.update (2)
+  method: PATCH
+  path: /api/v1/customers/{id}
+  tag: Customers
+  summary: "Update customer"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.CustomerController.update
+  method: PUT
+  path: /api/v1/customers/{id}
+  tag: Customers
+  summary: "Update customer"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+# --- Invoices (12 operations) ---
+- operation: AgreeWeb.API.V1.InvoiceController.index
+  method: GET
+  path: /api/v1/invoices
+  tag: Invoices
+  summary: "List invoices"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.create
+  method: POST
+  path: /api/v1/invoices
+  tag: Invoices
+  summary: "Create invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.create_and_send
+  method: POST
+  path: /api/v1/invoices/create_and_send
+  tag: Invoices
+  summary: "Create and send invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.delete
+  method: DELETE
+  path: /api/v1/invoices/{id}
+  tag: Invoices
+  summary: "Delete invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.show
+  method: GET
+  path: /api/v1/invoices/{id}
+  tag: Invoices
+  summary: "Get invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.update (2)
+  method: PATCH
+  path: /api/v1/invoices/{id}
+  tag: Invoices
+  summary: "Update invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.update
+  method: PUT
+  path: /api/v1/invoices/{id}
+  tag: Invoices
+  summary: "Update invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.mark_as_paid
+  method: POST
+  path: /api/v1/invoices/{id}/mark_as_paid
+  tag: Invoices
+  summary: "Mark invoice as paid"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.mark_as_sent
+  method: POST
+  path: /api/v1/invoices/{id}/mark_as_sent
+  tag: Invoices
+  summary: "Mark invoice as sent"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.pdf
+  method: GET
+  path: /api/v1/invoices/{id}/pdf
+  tag: Invoices
+  summary: "Download invoice PDF"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.receipt_pdf
+  method: GET
+  path: /api/v1/invoices/{id}/receipt_pdf
+  tag: Invoices
+  summary: "Download receipt PDF"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.InvoiceController.send
+  method: POST
+  path: /api/v1/invoices/{id}/send
+  tag: Invoices
+  summary: "Send invoice"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+# --- Reports (15 operations) ---
+- operation: AgreeWeb.API.V1.ReportController.cashflow_chart
+  method: GET
+  path: /api/v1/reports/cashflow/chart
+  tag: Reports
+  summary: "Cashflow chart data"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.cashflow_forecast
+  method: GET
+  path: /api/v1/reports/cashflow/forecast
+  tag: Reports
+  summary: "Cash forecast"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.cashflow_outstanding_invoices
+  method: GET
+  path: /api/v1/reports/cashflow/outstanding_invoices
+  tag: Reports
+  summary: "Outstanding invoices"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.cashflow_stats
+  method: GET
+  path: /api/v1/reports/cashflow/stats
+  tag: Reports
+  summary: "Cashflow statistics"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_aging_chart
+  method: GET
+  path: /api/v1/reports/recovery/aging/chart
+  tag: Reports
+  summary: "Aging chart data"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_aging_invoices
+  method: GET
+  path: /api/v1/reports/recovery/aging/invoices
+  tag: Reports
+  summary: "Invoices by aging bucket"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_aging_trend
+  method: GET
+  path: /api/v1/reports/recovery/aging/trend
+  tag: Reports
+  summary: "Aging trend"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_leakage_stage_durations
+  method: GET
+  path: /api/v1/reports/recovery/leakage/stage_durations
+  tag: Reports
+  summary: "Stage duration statistics"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_leakage_stalled_invoices
+  method: GET
+  path: /api/v1/reports/recovery/leakage/stalled_invoices
+  tag: Reports
+  summary: "Stalled invoices"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_leakage_stats
+  method: GET
+  path: /api/v1/reports/recovery/leakage/stats
+  tag: Reports
+  summary: "Leakage statistics"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.recovery_leakage_waterfall
+  method: GET
+  path: /api/v1/reports/recovery/leakage/waterfall
+  tag: Reports
+  summary: "Leakage waterfall"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.revenue_chart
+  method: GET
+  path: /api/v1/reports/revenue/chart
+  tag: Reports
+  summary: "Revenue chart data"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.revenue_customers
+  method: GET
+  path: /api/v1/reports/revenue/customers
+  tag: Reports
+  summary: "Customers by revenue"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.revenue_customers_by_mrr
+  method: GET
+  path: /api/v1/reports/revenue/customers_by_mrr
+  tag: Reports
+  summary: "Customers by MRR"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.ReportController.revenue_stats
+  method: GET
+  path: /api/v1/reports/revenue/stats
+  tag: Reports
+  summary: "Revenue statistics"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+# --- Webhooks (7 operations) ---
+- operation: AgreeWeb.API.V1.WebhookEndpointController.index
+  method: GET
+  path: /api/v1/webhooks
+  tag: Webhooks
+  summary: "List webhook endpoints"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.WebhookEndpointController.create
+  method: POST
+  path: /api/v1/webhooks
+  tag: Webhooks
+  summary: "Create webhook endpoint"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.WebhookEndpointController.test
+  method: POST
+  path: /api/v1/webhooks/test
+  tag: Webhooks
+  summary: "Send test webhook"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.WebhookEndpointController.delete
+  method: DELETE
+  path: /api/v1/webhooks/{id}
+  tag: Webhooks
+  summary: "Delete webhook endpoint"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.WebhookEndpointController.show
+  method: GET
+  path: /api/v1/webhooks/{id}
+  tag: Webhooks
+  summary: "Get webhook endpoint"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.WebhookEndpointController.update (2)
+  method: PATCH
+  path: /api/v1/webhooks/{id}
+  tag: Webhooks
+  summary: "Update webhook endpoint"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.
+- operation: AgreeWeb.API.V1.WebhookEndpointController.update
+  method: PUT
+  path: /api/v1/webhooks/{id}
+  tag: Webhooks
+  summary: "Update webhook endpoint"
+  reason: No MCP tool could be bound - the MCP tool list is OAuth-gated.

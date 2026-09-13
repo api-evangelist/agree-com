@@ -1,0 +1,338 @@
+x-provenance:
+  generated: '2026-09-12'
+  method: generated
+  source: https://secure.agree.com/documentation#tag/Webhooks
+  note: >-
+    Agree.com publishes no AsyncAPI document. This one is generated faithfully from the
+    provider's own published webhook catalog - the "Available Events" table, the payload
+    shape, the signature headers and the retry schedule, all documented verbatim in the
+    Webhooks tag guide of https://secure.agree.com/documentation/openapi. Every event name,
+    description, firing condition and header below is the provider's text. No event, field, or
+    schema has been invented. The per-event payloads reuse the Invoice and Agreement schemas
+    from the provider's own OpenAPI, as the documentation states they do - "The payload
+    contains the complete resource object".
+asyncapi: 3.0.0
+info:
+  title: Agree.com Webhooks
+  version: 1.0.0
+  description: >-
+    Real-time event notifications from the Agree contract-to-cash platform. Agree POSTs a
+    signed JSON body to endpoints you register through POST /api/v1/webhooks. Twelve event
+    types are published, covering the invoice lifecycle, the agreement signature lifecycle,
+    and a test event. Delivery is at-least-once with a five-attempt exponential backoff.
+  contact:
+    name: Agree Support
+    email: support@agree.com
+    url: https://secure.agree.com/documentation
+  externalDocs:
+    description: Agree webhook documentation
+    url: https://secure.agree.com/documentation#tag/Webhooks
+defaultContentType: application/json
+servers:
+  subscriber:
+    host: your-app.example.com
+    protocol: https
+    description: >-
+      Your own HTTPS endpoint, registered via POST /api/v1/webhooks. HTTPS is required in
+      production. Agree is the publisher; your endpoint is the server that receives.
+channels:
+  webhookEndpoint:
+    address: /
+    title: Registered webhook endpoint
+    description: >-
+      The single URL you register. All subscribed event types are delivered to it with the
+      same envelope; the event type is carried in the body's "event" member, not in the path.
+    messages:
+      invoiceCreated:
+        $ref: '#/components/messages/invoiceCreated'
+      invoiceSent:
+        $ref: '#/components/messages/invoiceSent'
+      invoiceDue:
+        $ref: '#/components/messages/invoiceDue'
+      invoicePaid:
+        $ref: '#/components/messages/invoicePaid'
+      invoiceFailed:
+        $ref: '#/components/messages/invoiceFailed'
+      invoiceCanceled:
+        $ref: '#/components/messages/invoiceCanceled'
+      invoiceRefunded:
+        $ref: '#/components/messages/invoiceRefunded'
+      agreementCreated:
+        $ref: '#/components/messages/agreementCreated'
+      agreementSent:
+        $ref: '#/components/messages/agreementSent'
+      agreementSigned:
+        $ref: '#/components/messages/agreementSigned'
+      agreementExecuted:
+        $ref: '#/components/messages/agreementExecuted'
+      webhookTest:
+        $ref: '#/components/messages/webhookTest'
+operations:
+  receiveAgreeEvent:
+    action: receive
+    channel:
+      $ref: '#/channels/webhookEndpoint'
+    title: Receive an Agree event
+    summary: Agree POSTs a signed event envelope to your registered endpoint.
+    description: >-
+      Return 200 within 5 seconds and process asynchronously. Verify X-Webhook-Signature
+      before processing. Non-2xx or timeout triggers the retry schedule.
+    bindings:
+      http:
+        method: POST
+    messages:
+    - $ref: '#/channels/webhookEndpoint/messages/invoiceCreated'
+    - $ref: '#/channels/webhookEndpoint/messages/invoiceSent'
+    - $ref: '#/channels/webhookEndpoint/messages/invoiceDue'
+    - $ref: '#/channels/webhookEndpoint/messages/invoicePaid'
+    - $ref: '#/channels/webhookEndpoint/messages/invoiceFailed'
+    - $ref: '#/channels/webhookEndpoint/messages/invoiceCanceled'
+    - $ref: '#/channels/webhookEndpoint/messages/invoiceRefunded'
+    - $ref: '#/channels/webhookEndpoint/messages/agreementCreated'
+    - $ref: '#/channels/webhookEndpoint/messages/agreementSent'
+    - $ref: '#/channels/webhookEndpoint/messages/agreementSigned'
+    - $ref: '#/channels/webhookEndpoint/messages/agreementExecuted'
+    - $ref: '#/channels/webhookEndpoint/messages/webhookTest'
+components:
+  messageTraits:
+    signedEnvelope:
+      headers:
+        type: object
+        properties:
+          Content-Type:
+            type: string
+            const: application/json
+          X-Webhook-Signature:
+            type: string
+            description: HMAC-SHA256 of the raw request body keyed by the endpoint secret, hex, lowercase.
+          X-Webhook-Timestamp:
+            type: string
+            description: Unix timestamp when the event was sent.
+        required:
+        - X-Webhook-Signature
+        - X-Webhook-Timestamp
+  schemas:
+    envelope:
+      type: object
+      description: Every Agree webhook body has this two-member shape.
+      properties:
+        event:
+          type: string
+          description: The event type.
+        payload:
+          type: object
+          description: The complete resource object for the event's subject.
+      required:
+      - event
+      - payload
+    invoicePayload:
+      type: object
+      description: >-
+        The full Invoice resource, identical to the data member of GET /api/v1/invoices/{id}.
+        See components.schemas.Invoice in openapi/agree-com-api-openapi.json.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - created
+          - due
+          - sent
+          - canceled
+          - paid
+          - failed
+          - refunded
+          - draft
+        amount:
+          type: object
+          properties:
+            amount:
+              type: integer
+              description: Minor units.
+            currency:
+              type: string
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+    agreementPayload:
+      type: object
+      description: >-
+        The data member of GET /api/v1/agreements/{id}, including the flat recipient fields
+        recipients[].email and recipients[].name and field_values, a map of field_id to filled
+        plain-text values. Nested recipients[].user and recipients[].contact objects are also
+        included for backwards compatibility; the provider steers new integrations to the flat
+        fields.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        recipients:
+          type: array
+          items:
+            type: object
+        field_values:
+          type: object
+  messages:
+    invoiceCreated:
+      name: invoice.created
+      title: Invoice was created
+      summary: Fires after POST /invoices.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+      examples:
+      - name: invoiceCreated
+        payload:
+          event: invoice.created
+          payload:
+            id: 4a755746-ba45-4226-a669-aebc7ad3719c
+            status: created
+    invoiceSent:
+      name: invoice.sent
+      title: Invoice emailed to customer
+      summary: Fires when delivery completes.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    invoiceDue:
+      name: invoice.due
+      title: Invoice reached due status
+      summary: >-
+        Fires when status becomes due - either the scheduled job runs after sent (past due_at),
+        or the invoice is sent already at or past due_at (immediate due).
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    invoicePaid:
+      name: invoice.paid
+      title: Payment successful
+      summary: Fires after payment confirmation.
+      description: >-
+        One of the two events the provider recommends starting with - "Start with invoice.paid
+        and invoice.failed - these are the most important for payment integrations."
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+      examples:
+      - name: invoicePaid
+        payload:
+          event: invoice.paid
+          payload:
+            id: 4a755746-ba45-4226-a669-aebc7ad3719c
+            status: paid
+            amount:
+              amount: 15000
+              currency: USD
+            paid_at: '2025-01-20T14:30:00Z'
+    invoiceFailed:
+      name: invoice.failed
+      title: Payment attempt failed
+      summary: >-
+        Fires after payment rejection. The invoice status becomes failed but the customer can
+        retry payment using the same link.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    invoiceCanceled:
+      name: invoice.canceled
+      title: Invoice was canceled
+      summary: Fires after DELETE /invoices.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    invoiceRefunded:
+      name: invoice.refunded
+      title: Invoice payment was refunded
+      summary: Fires after a refund is processed.
+      description: >-
+        Note that no refund OPERATION exists in the REST API. This event is emitted for
+        refunds performed outside the API surface.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    agreementCreated:
+      name: agreement.created
+      title: Agreement was created
+      summary: Fires after POST /agreements.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    agreementSent:
+      name: agreement.sent
+      title: Agreement was sent to recipients
+      summary: Fires when status changes to sent.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    agreementSigned:
+      name: agreement.signed
+      title: Agreement was signed by a recipient
+      summary: Fires when a recipient signs. Emitted once per signer.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    agreementExecuted:
+      name: agreement.executed
+      title: Agreement was fully executed
+      summary: Fires when all signers have signed.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+    webhookTest:
+      name: webhook.test
+      title: Test event
+      summary: Fires when you trigger a test via POST /api/v1/webhooks/test.
+      traits:
+      - $ref: '#/components/messageTraits/signedEnvelope'
+      payload:
+        $ref: '#/components/schemas/envelope'
+x-delivery:
+  semantics: at-least-once
+  duplicates: >-
+    Documented as possible - "Webhooks may occasionally be sent more than once; use idempotency."
+  retry_schedule:
+  - attempt: 1
+    delay: immediate
+  - attempt: 2
+    delay: ~1 minute
+  - attempt: 3
+    delay: ~5 minutes
+  - attempt: 4
+    delay: ~30 minutes
+  - attempt: 5
+    delay: ~2 hours
+  after_exhaustion: >-
+    The webhook is marked failed and the endpoint's failure_count is incremented. The provider
+    recommends monitoring failure_count to detect integration issues.
+  response_deadline: Return 200 within 5 seconds, then process asynchronously.
+x-management:
+  register: POST /api/v1/webhooks
+  list: GET /api/v1/webhooks
+  show: GET /api/v1/webhooks/{id}
+  update: PUT|PATCH /api/v1/webhooks/{id}
+  delete: DELETE /api/v1/webhooks/{id}
+  test: POST /api/v1/webhooks/test
+  disable: Set active to false rather than deleting.
+  secret: >-
+    A whsec_-prefixed signing secret is returned exactly once, in the create response, and
+    cannot be retrieved afterwards.
+  path_note: >-
+    The prose documentation writes these paths as /api/v1/webhook_endpoints; the OpenAPI
+    declares /api/v1/webhooks. The OpenAPI paths are used here. See
+    conventions/agree-com-conventions.yml, documentation_defects.

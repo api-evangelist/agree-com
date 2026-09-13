@@ -1,0 +1,93 @@
+generated: '2026-09-12'
+method: searched
+source: >-
+  https://secure.agree.com/documentation + https://agree.com/terms +
+  https://agree.com/developers + probes of agree.com/changelog, agree.com/status and
+  status.agree.com
+name: Agree.com API Lifecycle
+description: >-
+  Agree.com is an early-stage company running a v1 API with no published operational
+  lifecycle. Versioning is URI-path and stable; everything downstream of it - changelog,
+  deprecation policy, status page, SLA - is absent, and the Terms of Service explicitly
+  disclaim availability guarantees.
+versioning:
+  style: uri-path
+  current_version: v1
+  pattern: /api/v{n}/
+  spec_version: 1.0.0
+  header_versioning: false
+  date_versioning: false
+  detail: >-
+    All 37 paths are prefixed /api/v1/. info.version in the OpenAPI is 1.0.0. No other version
+    has ever been published and no version negotiation header is documented.
+change_log:
+  present: false
+  url: null
+  detail: >-
+    No changelog, release notes, or "what's new" surface exists. agree.com/changelog returns
+    404. The OpenAPI carries no date stamp, no x-version metadata and no build identifier, so
+    there is no way for a consumer to detect that the contract has changed other than by
+    re-fetching and diffing https://secure.agree.com/documentation/openapi.
+  probed:
+  - url: https://agree.com/changelog
+    status: 404
+deprecation:
+  policy_published: false
+  policy_url: null
+  sunset_header: false
+  deprecation_header: false
+  rfc8594: false
+  deprecated_operations: []
+  detail: >-
+    No deprecation policy, no notice period, and no RFC 8594 Sunset or Deprecation header is
+    documented or observed. Zero of the 56 operations carry the OpenAPI deprecated flag, and
+    the string "deprecat" does not appear anywhere in the specification. There is one
+    backwards-compatibility statement, in the Webhooks guide, and it is the only lifecycle
+    commitment the provider makes anywhere - agreement webhook payloads keep nested
+    recipients[].user and recipients[].contact objects "for backwards compatibility", with new
+    integrations steered to the flat fields.
+status_page:
+  present: false
+  url: null
+  detail: >-
+    No status page. agree.com/status returns 404 and status.agree.com has no DNS record. No
+    third-party status provider (Statuspage, Instatus, Better Stack) is linked from the site,
+    the developer portal, or the API documentation.
+  probed:
+  - url: https://agree.com/status
+    status: 404
+  - url: status.agree.com
+    status: NXDOMAIN
+sla:
+  published: false
+  uptime_target: null
+  detail: >-
+    No SLA is published for the free or Growth tiers. The Terms of Service disclaim
+    availability outright - "We cannot guarantee the Services will be available at all times"
+    - and state the customer has no recourse for downtime. The pricing page lists
+    "SLA & priority support" as an Enterprise-tier feature, so an SLA exists contractually for
+    Enterprise customers but its terms are not public.
+  source: https://agree.com/terms
+support:
+  channel: email
+  contact: support@agree.com
+  detail: >-
+    The API documentation closes with "Contact support@agree.com for API assistance." Email
+    support is listed as a Starter-tier feature and a dedicated account manager as Enterprise.
+    No developer community, forum, Slack, or Discord is published.
+  source: https://secure.agree.com/documentation
+maturity:
+  stage: production
+  detail: >-
+    The API is production - it issues real invoices and moves real money - but its operational
+    surface is pre-1.0 in practice. A consumer has no way to learn that a breaking change
+    shipped, no advance notice mechanism, and no incident visibility.
+announced_but_undocumented:
+  detail: >-
+    agree.com/developers advertises three developer surfaces as one-line teasers with no
+    documentation behind them: "MCP - Connect Agree to AI agents through MCP", "CLI - Manage
+    Agree from the command line", and "Embedded UI - Manage Agree from the embedded web UI".
+    All three tiles link back to /developers itself. The MCP server was independently
+    confirmed to exist by probing RFC 9728 metadata (see mcp/agree-com-mcp.yml). No CLI was
+    found in any package registry or repository, and no embeddable component library was
+    found, so no cli/ or components/ artifact is recorded for this provider.
