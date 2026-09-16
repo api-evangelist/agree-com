@@ -30,38 +30,902 @@ tags:
 - Accounts Receivable
 - Fintech
 - Financial-Services
+- Webhook
+- MCP
+- agent-native
+tags_raw:
+- Agreements
+- Electronic Signature
+- Contract Management
+- Invoicing
+- Billing
+- Payments
+- Accounts Receivable
+- Fintech
+- Financial-Services
 - Webhooks
 - MCP
 - agent-native
 position: Producing
 apis:
-- aid: agree-com:agree-api
-  name: Agree API
+- aid: agree-com:agree-com-agreements-api
+  name: Agree.com Agreements API
   description: >-
-    REST API for the Agree contract-to-cash platform. 56 operations across six resources:
-    Agreements (create from templates, assign signature fields to recipients, send, fetch
-    executed PDFs, soft delete), Invoices (create, create-and-send in one call, recurring
-    schedules, mark as sent or paid, invoice and receipt PDFs), Contacts and Customers
-    (address book, soft delete), Reports (cash-flow stats and forecast, revenue by customer
-    and MRR, recovery aging and leakage analysis), and Webhooks (endpoint registration with
-    HMAC-SHA256 signed delivery over twelve event types). Authentication is a bearer API key
-    issued from Settings > API Keys in the dashboard. Responses are wrapped in a data envelope
-    with page/page_size pagination; validation failures return a field-keyed errors object
-    rather than RFC 9457 problem+json.
+    Create, send, and manage agreements with recipients and field assignments.
+
+
+    ## Overview
+
+
+    Agreements are documents that require signatures from one or more recipients. Each agreement is created
+    from a template and can have specific fields (like signature fields, date fields, text fields) assigned
+    to specific recipients.
+
+
+    **Key concepts:**
+
+
+    - Agreements are created from templates
+
+    - Each agreement must have exactly one recipient with the `owner` role (the account holder)
+
+    - Fields can be assigned to specific recipients via `assigned_fields`
+
+    - Agreements can include invoices for payment collection
+
+    - Recipients can be specified by `contact_id` or by providing contact details inline
+
+
+    ## Creating an Agreement
+
+
+    ### Basic Agreement Creation
+
+
+    Here's a basic example of creating an agreement from a template:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Service Agreement",
+        "recipients": [
+          {
+            "contact_id": "770e8400-e29b-41d4-a716-446655440000",
+            "role": "owner"
+          },
+          {
+            "contact_id": "880e8400-e29b-41d4-a716-446655440000",
+            "role": "signer"
+          }
+        ]
+      }'
+    ```
+
+
+    ### The Owner Role Requirement
+
+
+    **Important:** When creating an agreement, exactly one recipient must be assigned the `owner` role.
+    This recipient must be the account holder (the person whose API key is being used). The owner is the
+    person initiating the agreement creation.
+
+
+    **Common mistake:** If you assign yourself as a `signer` instead of `owner`, the request will fail
+    with a validation error.
+
+
+    **Correct approach:**
+
+    ```json
+
+    {
+      "recipients": [
+        {
+          "contact_id": "YOUR_CONTACT_ID",
+          "role": "owner"
+        },
+        {
+          "contact_id": "CLIENT_CONTACT_ID",
+          "role": "signer"
+        }
+      ]
+    }
+
+    ```
+
+
+    **Incorrect approach (will fail):**
+
+    ```json
+
+    {
+      "recipients": [
+        {
+          "contact_id": "YOUR_CONTACT_ID",
+          "role": "signer"  // ❌ Wrong - must be "owner"
+        }
+      ]
+    }
+
+    ```
+
+
+    ### Finding Your Contact ID
+
+
+    The account holder (you) is also a contact in your organization. To find your own Contact ID:
+
+
+    ```bash
+
+    curl https://api.agree.com/api/v1/contacts \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    This returns a list of all contacts in your organization, including yourself. Look for the contact
+    with your email address - that's your Contact ID. You can also filter by email:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/contacts?email=your-email@example.com" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    **Response:**
+
+    ```json
+
+    {
+      "data": [
+        {
+          "id": "770e8400-e29b-41d4-a716-446655440000",
+          "name": "Your Name",
+          "email": "your-email@example.com",
+          "company": "Your Company",
+          ...
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "page_size": 10,
+        "total_pages": 1,
+        "total_entries": 1
+      }
+    }
+
+    ```
+
+
+    Use the `id` field from the contact that matches your email address as your `contact_id` when creating
+    agreements.
+
+
+    ### Assigning Fields to Recipients
+
+
+    When creating an agreement, you can assign specific fields to specific recipients. Fields are identified
+    by their field IDs (as defined in the template).
+
+
+    **Example: Assigning Fields**
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Service Agreement",
+        "recipients": [
+          {
+            "contact_id": "770e8400-e29b-41d4-a716-446655440000",
+            "role": "owner",
+            "assigned_fields": ["company_address", "date"]
+          },
+          {
+            "contact_id": "880e8400-e29b-41d4-a716-446655440000",
+            "role": "signer",
+            "assigned_fields": ["signature_field", "date_field"]
+          }
+        ]
+      }'
+    ```
+
+
+    In this example:
+
+    - The owner is assigned `company_address` and `date` fields
+
+    - The signer is assigned `signature_field` and `date_field` fields
+
+
+    **Field Assignment Rules:**
+
+
+    - Field IDs must match exactly as defined in the template
+
+    - Fields not assigned to any recipient will be assigned to the owner by default
+
+    - You can assign multiple fields to the same recipient
+
+    - The same field cannot be assigned to multiple recipients
+
+
+    **Complete Example with All Options:**
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Service Agreement with Invoice",
+        "delivery_mode": "managed",
+        "field_values": {
+          "field_1": "John Doe",
+          "field_2": "2024-01-01"
+        },
+        "recipients": [
+          {
+            "contact_id": "770e8400-e29b-41d4-a716-446655440000",
+            "role": "owner",
+            "assigned_fields": ["company_address", "date"]
+          },
+          {
+            "contact": {
+              "email": "client@example.com",
+              "name": "Jane Smith",
+              "company": "Client Corp"
+            },
+            "role": "signer",
+            "assigned_fields": ["signature_field", "date_field"]
+          }
+        ],
+        "signing_order_enabled": false,
+        "payments_enabled": true,
+        "reminder_schedule": "weekly",
+        "invoice": {
+          "billing_contact": {
+            "email": "client@example.com",
+            "name": "Jane Smith"
+          },
+          "amount": 15000,
+          "currency": "USD",
+          "memo": "Payment for services",
+          "payment_methods": ["card", "ach"],
+          "payment_terms_type": "net",
+          "payment_terms_days": 30
+        }
+      }'
+    ```
+
+
+    ## Daisy-Chaining: Attaching an Invoice to an Agreement
+
+
+    There are two ways to attach an invoice to an agreement:
+
+
+    ### Option 1: Create Agreement with Invoice (Single Request)
+
+
+    The simplest approach is to include the invoice in the agreement creation request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Service Agreement with Invoice",
+        "recipients": [
+          {
+            "contact_id": "YOUR_CONTACT_ID",
+            "role": "owner"
+          },
+          {
+            "contact_id": "CLIENT_CONTACT_ID",
+            "role": "signer"
+          }
+        ],
+        "invoice": {
+          "billing_contact": {
+            "email": "client@example.com",
+            "name": "Jane Smith"
+          },
+          "amount": 15000,
+          "currency": "USD",
+          "memo": "Payment for services rendered",
+          "payment_methods": ["card", "ach"],
+          "payment_terms_type": "net",
+          "payment_terms_days": 30
+        }
+      }'
+    ```
+
+
+    This creates both the agreement and an associated invoice template in a single API call. The invoice
+    template is linked to the agreement via the `invoice_template_id` field.
+
+
+    ### Option 2: Two-Step Process (Create Agreement, Then Create Invoice)
+
+
+    If you need more control or want to create the invoice separately:
+
+
+    **Step 1: Create the Agreement**
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Service Agreement",
+        "recipients": [
+          {
+            "contact_id": "YOUR_CONTACT_ID",
+            "role": "owner"
+          },
+          {
+            "contact_id": "CLIENT_CONTACT_ID",
+            "role": "signer"
+          }
+        ]
+      }'
+    ```
+
+
+    **Response includes agreement ID:**
+
+    ```json
+
+    {
+      "data": {
+        "id": "990e8400-e29b-41d4-a716-446655440000",
+        ...
+      }
+    }
+
+    ```
+
+
+    **Step 2: Create Invoice and Link to Agreement**
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "agreement_id": "990e8400-e29b-41d4-a716-446655440000",
+          "billing_contact": {
+            "email": "client@example.com",
+            "name": "Jane Smith"
+          },
+          "amount": 15000,
+          "currency": "USD",
+          "memo": "Payment for services rendered",
+          "payment_methods": ["card", "ach"],
+          "payment_terms_type": "net",
+          "payment_terms_days": 30
+        }
+      }'
+    ```
+
+
+    **When to use each approach:**
+
+
+    - **Option 1 (single request):** Use when you want to create the agreement and invoice together atomically.
+    This is simpler and ensures the invoice is always linked to the agreement.
+
+
+    - **Option 2 (two-step):** Use when you need to:
+      - Create the agreement first and review it before adding the invoice
+      - Create multiple invoices for the same agreement
+      - Have more control over the invoice creation timing
+      - Handle errors separately for agreement vs invoice creation
+
+    ## Recipient Roles
+
+
+    | Role | Description |
+
+    |------|-------------|
+
+    | `owner` | The account holder initiating the agreement. Exactly one recipient must have this role.
+    |
+
+    | `signer` | A recipient who needs to sign the agreement |
+
+    | `viewer` | A recipient who can view but not sign the agreement |
+
+    | `payee` | A recipient who will receive payment (used with invoices) |
+
+
+    ## Field Values (Prefilling)
+
+
+    You can prefill field values when creating an agreement:
+
+
+    ```json
+
+    {
+      "template_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Service Agreement",
+      "field_values": {
+        "field_1": "John Doe",
+        "field_2": "2024-01-01",
+        "company_name": "Acme Corp"
+      },
+      "recipients": [...]
+    }
+
+    ```
+
+
+    Keys in `field_values` must match **`field_id`** values from your template. Fetch the template to
+    list `field_names` (non-variable fields) and `variables` (each variable’s `field_id` and display `name`):
+
+
+    ```bash
+
+    curl https://api.agree.com/api/v1/agreements/templates/550e8400-e29b-41d4-a716-446655440000 \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    The response includes a `field_names` array listing all available fields in the template, plus a `variables`
+    array for template variables (see below). Use each field’s **`field_id`** as the key in `field_values`
+    (for variables, use the `field_id` from the `variables` entry, not the display `name`).
+
+
+    ### Typed values and rich text
+
+
+    Each entry in `field_values` can be either:
+
+
+    1. **A string** (legacy): plain text. Works for any field or variable.
+
+    2. **An object** with a `content` string and optional `content_type`:
+       ```json
+       {
+         "content": "<strong>Renewal</strong> 2026-05-01",
+         "content_type": "html"
+       }
+       ```
+       - `content` (required): the payload.
+       - `content_type` (optional): `plaintext`, `html`, or `markdown`. If omitted, **`plaintext`** is
+    used.
+
+    **Rich text applies only to template variables.** If the `field_values` key matches a **variable**
+    `field_id` (from `GET /api/v1/agreements/templates/:id` → `data.variables`), then `content_type` **`html`**
+    or **`markdown`** is converted into styled inline content in the agreement body (bold, italics, line
+    breaks, HTML lists, markdown list lines with `-` / `*`, etc.).
+
+
+    For **all non-variable fields** (text, date, signature, checkbox, and every other fillable field),
+    typed objects are accepted, but **only the plain-text form** is stored on the field—**formatting is
+    not preserved**. Use plain strings for those unless you only need a simple string payload.
+
+
+    Invalid typed objects (for example missing `content` or an invalid `content_type`) return **400 Bad
+    Request** with an error referencing `field_values`.
+
+
+    ## Custom Variables (Template Variables)
+
+
+    Templates can contain **custom variables** — placeholder fields for dynamic content like names, dates,
+    or amounts. Variables remain as live fields in the agreement until it is sent, at which point they
+    are resolved into plain text.
+
+
+    Variable values can be provided at creation time via `field_values`, or filled in later through the
+    editor UI. **All variables must have values before the agreement can be sent.**
+
+
+    **Rich text:** Only keys that correspond to **variables** (see `variables[].field_id`) honor `content_type`
+    of `html` or `markdown` and keep formatting in the document. Other fields always receive plain text
+    only—see [Typed values and rich text](#typed-values-and-rich-text).
+
+
+    ### Step 1: Discover Template Variables
+
+
+    Fetch the template to see its variables:
+
+
+    ```bash
+
+    curl https://api.agree.com/api/v1/agreements/templates/TEMPLATE_ID \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    **Response:**
+
+    ```json
+
+    {
+      "data": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Employment Agreement",
+        "field_names": ["signature_field", "date_field"],
+        "variables": [
+          {
+            "name": "Employee Name",
+            "field_id": "var_abc123"
+          },
+          {
+            "name": "Start Date",
+            "field_id": "var_def456"
+          },
+          {
+            "name": "Salary",
+            "field_id": "var_ghi789"
+          }
+        ]
+      }
+    }
+
+    ```
+
+
+    The `variables` array lists each custom variable with its `name` (display label) and `field_id` (the
+    key to use in `field_values`).
+
+
+    ### Step 2: Provide Variable Values (Optional at Creation)
+
+
+    When creating the agreement, you can pre-fill variable values via `field_values`. Any variables not
+    provided will remain as unfilled live fields in the agreement.
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Employment Agreement - Jane Smith",
+        "field_values": {
+          "var_abc123": "Jane Smith",
+          "var_def456": "2025-03-01",
+          "var_ghi789": "$120,000"
+        },
+        "recipients": [
+          {
+            "contact_id": "YOUR_CONTACT_ID",
+            "role": "owner"
+          },
+          {
+            "contact": {
+              "email": "jane@example.com",
+              "name": "Jane Smith"
+            },
+            "role": "signer",
+            "assigned_fields": ["signature_field", "date_field"]
+          }
+        ]
+      }'
+    ```
+
+
+    When the agreement is sent, variable values are resolved into plain text — recipients will see "Jane
+    Smith" rather than a placeholder (rich variable content is flattened at send time).
+
+
+    ### Rich text examples (variables only)
+
+
+    Plain string (unchanged):
+
+
+    ```json
+
+    "var_abc123": "Jane Smith"
+
+    ```
+
+
+    HTML (lists, emphasis, etc.):
+
+
+    ```json
+
+    "var_schedule": {
+      "content_type": "html",
+      "content": "<ul><li>Payment 1 on 2026-03-17</li><li>Payment 2 on 2026-04-17</li></ul>"
+    }
+
+    ```
+
+
+    Markdown (line breaks, `-` / `*` list lines, `**bold**`, `*italic*`, `_italic_`):
+
+
+    ```json
+
+    "var_schedule": {
+      "content_type": "markdown",
+      "content": "- **First** payment on 2026-03-17\n- Second payment on 2026-04-17"
+    }
+
+    ```
+
+
+    Default to plaintext when `content_type` is omitted:
+
+
+    ```json
+
+    "var_note": { "content": "Shown as plain text only" }
+
+    ```
+
+
+    ### Error Handling
+
+
+    If you attempt to send an agreement with unfilled variables, the API returns a `400 Bad Request`:
+
+
+    ```json
+
+    {
+      "error": "Unfilled variables: Employee Name, Start Date. All variables must have values before sending."
+    }
+
+    ```
+
+
+    ## Listing Agreements
+
+
+    Retrieve agreements with optional filtering:
+
+
+    ```bash
+
+    # Get all agreements
+
+    curl https://api.agree.com/api/v1/agreements \
+      -H "Authorization: Bearer YOUR_API_KEY"
+
+    # Filter by status
+
+    curl "https://api.agree.com/api/v1/agreements?status=drafted" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ### Query Parameters
+
+
+    | Parameter | Type | Description |
+
+    |-----------|------|-------------|
+
+    | `page` | integer | Page number (default: 1) |
+
+    | `page_size` | integer | Items per page (default: 10, max: 100) |
+
+    | `status` | string | Filter by status: `created`, `drafted`, `sent`, `signed`, `executed`, `terminated`
+    |
+
+
+    ## Sending an Agreement
+
+
+    After creating an agreement, send it to recipients:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements/990e8400-e29b-41d4-a716-446655440000/send \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "delivery_mode": "managed"
+      }'
+    ```
+
+
+    **Delivery Modes:**
+
+
+    - `managed` - Agree sends emails to recipients automatically
+
+    - `embedded` - Emails are suppressed (you handle delivery yourself)
+
+
+    ## Create and Send in One Step
+
+
+    For convenience, create and send an agreement in a single request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/agreements/create_and_send \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "template_id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Service Agreement",
+        "delivery_mode": "managed",
+        "recipients": [
+          {
+            "contact_id": "YOUR_CONTACT_ID",
+            "role": "owner"
+          },
+          {
+            "contact_id": "CLIENT_CONTACT_ID",
+            "role": "signer"
+          }
+        ]
+      }'
+    ```
+
+
+    ## Updating an Agreement
+
+
+    Update agreement details and recipients. You can include `field_values` inside `agreement` the same
+    way as on create; **rich text (`html` / `markdown`) still applies only to template variables**—see
+    [Typed values and rich text](#typed-values-and-rich-text).
+
+
+    ```bash
+
+    curl -X PUT https://api.agree.com/api/v1/agreements/990e8400-e29b-41d4-a716-446655440000 \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "agreement": {
+          "name": "Updated Service Agreement",
+          "recipients": [
+            {
+              "contact_id": "YOUR_CONTACT_ID",
+              "role": "owner",
+              "assigned_fields": ["company_address"]
+            },
+            {
+              "contact_id": "CLIENT_CONTACT_ID",
+              "role": "signer",
+              "assigned_fields": ["signature_field"]
+            }
+          ]
+        }
+      }'
+    ```
+
+
+    **Note:** Updating recipients replaces all existing recipients. Make sure to include all recipients
+    you want to keep.
+
+
+    ## Agreement Statuses
+
+
+    | Status | Description |
+
+    |--------|-------------|
+
+    | `created` | Agreement created but not yet finalized |
+
+    | `drafted` | Agreement is in draft state (default when created) |
+
+    | `sent` | Agreement has been sent to recipients |
+
+    | `viewed` | At least one recipient has viewed the agreement |
+
+    | `signed` | At least one recipient has signed |
+
+    | `executed` | Agreement is fully executed (all required signatures collected) |
+
+    | `renewed` | Agreement has been renewed |
+
+    | `terminated` | Agreement has been terminated |
+
+
+    ## Fields Reference
+
+
+    ### Core Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `id` | UUID | Unique agreement identifier |
+
+    | `name` | string | Agreement name |
+
+    | `status` | string | Current status (see statuses above) |
+
+    | `template_id` | UUID | Template used to create this agreement |
+
+    | `organization_id` | UUID | Your organization's ID |
+
+    | `invoice_template_id` | UUID | Associated invoice template (if invoice was created) |
+
+
+    ### Recipient Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `recipients` | array | List of recipients with their roles and assigned fields |
+
+    | `signing_order` | array | List of recipient IDs in signing order (if enabled) |
+
+    | `signing_order_enabled` | boolean | Whether signing order is enforced |
+
+
+    ### Delivery Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `delivery_mode` | string | `embedded` or `managed` |
+
+    | `reminder_schedule` | string | `none`, `daily`, `weekly`, or `monthly` |
+
+    | `reminder_scheduled_at` | datetime | When the next reminder will be sent |
+
+
+    ### Date Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `starts_at` | datetime | When the agreement starts |
+
+    | `ends_at` | datetime | When the agreement ends |
+
+    | `executed_at` | datetime | When the agreement was fully executed |
+
+    | `last_reminder_sent_at` | datetime | When the last reminder was sent |
   humanURL: https://secure.agree.com/documentation
   baseURL: https://secure.agree.com/api/v1
-  image: https://agree.com/img/social/social-media-card.png
   tags:
   - Agreements
-  - Electronic Signature
-  - Invoicing
-  - Payments
-  - Contacts
-  - Reporting
-  - Webhooks
   properties:
   - type: OpenAPI
-    url: openapi/agree-com-api-openapi.json
+    url: openapi/agree-com-agreements-api-openapi.yml
   - type: Documentation
     url: https://secure.agree.com/documentation
   - type: APIReference
@@ -70,8 +934,6 @@ apis:
     url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
   - type: Authentication
     url: https://secure.agree.com/documentation#section/Introduction/Authentication
-  - type: Overlay
-    url: overlays/agree-com-api-overlay.yaml
   - type: ErrorCatalog
     url: errors/agree-com-problem-types.yml
   - type: DataModel
@@ -82,8 +944,1715 @@ apis:
     url: asyncapi/agree-com-webhooks-asyncapi.yml
   - type: Webhooks
     url: asyncapi/agree-com-webhooks-asyncapi.yml
-  - type: MCPServer
-    url: mcp/agree-com-mcp.yml
+  - type: ToolCrosswalk
+    url: mcp/agree-com-tool-crosswalk.yml
+- aid: agree-com:agree-com-contacts-api
+  name: Agree.com Contacts API
+  description: >-
+    Manage your organization's contacts - the people and companies you do business with.
+
+
+    ## Overview
+
+
+    Contacts are the foundation of your billing workflow. Before you can send an invoice, you need someone
+    to send it to. Contacts store customer information like name, email, company, and job title.
+
+
+    **Key concepts:**
+
+
+    - Each contact belongs to a single organization
+
+    - Email addresses must be unique within your organization
+
+    - Contacts can be created explicitly via the API, or automatically when you send an invoice to a new
+    email address
+
+    - Deleting a contact is a soft delete - the record is retained for historical invoices
+
+
+    ## Creating a Contact
+
+
+    To add a new contact to your address book:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/contacts \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contact": {
+          "name": "Jane Smith",
+          "email": "jane@acme.com",
+          "company": "Acme Corporation",
+          "title": "CFO"
+        }
+      }'
+    ```
+
+
+    **Response:**
+
+
+    ```json
+
+    {
+      "data": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Jane Smith",
+        "email": "jane@acme.com",
+        "company": "Acme Corporation",
+        "title": "CFO",
+        "address": null,
+        "organization_id": "660e8400-e29b-41d4-a716-446655440000",
+        "inserted_at": "2025-01-15T10:30:00Z",
+        "updated_at": "2025-01-15T10:30:00Z"
+      }
+    }
+
+    ```
+
+
+    ## Using Contacts with Invoices
+
+
+    Once you have a contact, you can reference them when creating invoices. There are two ways to associate
+    a contact with an invoice:
+
+
+    ### Option 1: Use `contact_id`
+
+
+    If you already have a contact, pass their ID:
+
+
+    ```json
+
+    {
+      "invoice": {
+        "contact_id": "550e8400-e29b-41d4-a716-446655440000",
+        "amount": {"amount": 10000, "currency": "USD"}
+      }
+    }
+
+    ```
+
+
+    ### Option 2: Use `billing_contact`
+
+
+    Pass contact details directly - this will find or create the contact automatically:
+
+
+    ```json
+
+    {
+      "invoice": {
+        "billing_contact": {
+          "email": "jane@acme.com",
+          "name": "Jane Smith",
+          "company": "Acme Corporation"
+        },
+        "amount": {"amount": 10000, "currency": "USD"}
+      }
+    }
+
+    ```
+
+
+    If a contact with that email already exists, their details will be updated. If not, a new contact
+    is created.
+
+
+    ## Listing and Filtering Contacts
+
+
+    Retrieve contacts with optional filtering:
+
+
+    ```bash
+
+    # Get all contacts
+
+    curl https://api.agree.com/api/v1/contacts \
+      -H "Authorization: Bearer YOUR_API_KEY"
+
+    # Search by email
+
+    curl "https://api.agree.com/api/v1/contacts?email=jane" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+
+    # Filter by company
+
+    curl "https://api.agree.com/api/v1/contacts?company=acme" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ### Query Parameters
+
+
+    | Parameter | Type | Description |
+
+    |-----------|------|-------------|
+
+    | `page` | integer | Page number (default: 1) |
+
+    | `page_size` | integer | Items per page (default: 10, max: 100) |
+
+    | `email` | string | Filter by email address (fuzzy search) |
+
+    | `company` | string | Filter by company name (fuzzy search) |
+
+
+    ## Updating a Contact
+
+
+    Update contact details using PUT:
+
+
+    ```bash
+
+    curl -X PUT https://api.agree.com/api/v1/contacts/550e8400-e29b-41d4-a716-446655440000 \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contact": {
+          "title": "CEO",
+          "company": "Acme Corp International"
+        }
+      }'
+    ```
+
+
+    ## Deleting a Contact
+
+
+    Delete a contact by ID:
+
+
+    ```bash
+
+    curl -X DELETE https://api.agree.com/api/v1/contacts/550e8400-e29b-41d4-a716-446655440000 \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    **Note:** This performs a soft delete. The contact record is retained for historical purposes (existing
+    invoices will still show the contact information), but will no longer appear in your contacts list.
+
+
+    ## Fields Reference
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `id` | UUID | Unique contact identifier |
+
+    | `name` | string | Contact's full name (required) |
+
+    | `email` | string | Contact's email address (required, unique per organization) |
+
+    | `company` | string | Company or organization name |
+
+    | `title` | string | Job title or role |
+
+    | `address` | string | Mailing address |
+
+    | `organization_id` | UUID | Your organization's ID |
+
+    | `inserted_at` | datetime | When the contact was created |
+
+    | `updated_at` | datetime | When the contact was last updated |
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  tags:
+  - Contacts
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-contacts-api-openapi.yml
+  - type: Documentation
+    url: https://secure.agree.com/documentation
+  - type: APIReference
+    url: https://secure.agree.com/documentation
+  - type: GettingStarted
+    url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+  - type: Authentication
+    url: https://secure.agree.com/documentation#section/Introduction/Authentication
+  - type: ErrorCatalog
+    url: errors/agree-com-problem-types.yml
+  - type: DataModel
+    url: data-model/agree-com-data-model.yml
+  - type: Conventions
+    url: conventions/agree-com-conventions.yml
+  - type: AsyncAPI
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: Webhooks
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: ToolCrosswalk
+    url: mcp/agree-com-tool-crosswalk.yml
+- aid: agree-com:agree-com-customers-api
+  name: Agree.com Customers API
+  description: The Customers API from Agree.com — 2 operation(s) for customers.
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  tags:
+  - Customers
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-customers-api-openapi.yml
+  - type: Documentation
+    url: https://secure.agree.com/documentation
+  - type: APIReference
+    url: https://secure.agree.com/documentation
+  - type: GettingStarted
+    url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+  - type: Authentication
+    url: https://secure.agree.com/documentation#section/Introduction/Authentication
+  - type: ErrorCatalog
+    url: errors/agree-com-problem-types.yml
+  - type: DataModel
+    url: data-model/agree-com-data-model.yml
+  - type: Conventions
+    url: conventions/agree-com-conventions.yml
+  - type: AsyncAPI
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: Webhooks
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: ToolCrosswalk
+    url: mcp/agree-com-tool-crosswalk.yml
+- aid: agree-com:agree-com-invoices-api
+  name: Agree.com Invoices API
+  description: >-
+    Create, send, and track payment requests to your customers.
+
+
+    ## Overview
+
+
+    Invoices are the core of Agree's payment system. An invoice represents a request for payment that
+    you send to a customer. When created, Agree generates a secure payment link that your customer can
+    use to pay via their preferred method.
+
+
+    **Key concepts:**
+
+
+    - Invoices are sent to contacts (customers in your address book)
+
+    - Each invoice supports multiple payment methods: ACH bank transfer, credit card, or wire transfer
+
+    - Invoices can be one-time or recurring on a schedule
+
+    - Automatic email delivery sends the payment link to your customer
+
+    - Webhooks notify you in real-time when payment status changes
+
+
+    ## Common Use Cases
+
+
+    ### Bill a Client for a Completed Project
+
+
+    Send a one-time invoice after completing work:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "billing_contact": {
+            "email": "client@company.com",
+            "name": "Sarah Johnson",
+            "company": "Johnson & Co"
+          },
+          "amount": {"amount": 500000, "currency": "USD"},
+          "payment_methods": ["card", "ach", "wire"],
+          "due_at": "2025-02-01T00:00:00Z",
+          "memo": "Website redesign project - Final payment"
+        }
+      }'
+    ```
+
+
+    The client receives an email with a payment link. You'll get a webhook when they pay.
+
+
+    ### Set Up Monthly Retainer Billing
+
+
+    Create a recurring invoice that bills automatically each month:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "billing_contact": {
+            "email": "accounting@bigcorp.com",
+            "name": "Accounts Payable",
+            "company": "BigCorp Inc"
+          },
+          "amount": {"amount": 250000, "currency": "USD"},
+          "payment_methods": ["ach"],
+          "memo": "Monthly consulting retainer",
+          "recurring_options": {
+            "schedule": "custom",
+            "repeat_frequency": 1,
+            "repeat_unit": "month",
+            "repeat_on_type": "day_of_month",
+            "repeat_on_day": 1,
+            "recurring_end_type": "never",
+            "reminder_schedule": "weekly"
+          }
+        }
+      }'
+    ```
+
+
+    Agree automatically generates and sends invoices on the 1st of each month.
+
+
+    ### Track Outstanding Invoices
+
+
+    Find all unpaid invoices that are past due:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=sent,due&date_type=due_at&date_end=2025-01-17"
+    \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ### Handle Failed Payments
+
+
+    When a payment fails, you receive an `invoice.failed` webhook. The invoice status changes to `failed`,
+    but the customer can retry payment using the same link. To check failed invoices:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=failed" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ### Generate a Revenue Report
+
+
+    Get all paid invoices for a specific month:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=paid&date_type=paid_at&date_start=2025-01-01&date_end=2025-01-31"
+    \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ## Creating an Invoice
+
+
+    Here's a basic invoice creation:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "billing_contact": {
+            "email": "customer@example.com",
+            "name": "John Doe",
+            "company": "Acme Corp"
+          },
+          "amount": {"amount": 15000, "currency": "USD"},
+          "payment_methods": ["card", "ach"],
+          "due_at": "2025-02-15T00:00:00Z",
+          "scheduled_at": "2025-02-01T00:00:00Z",
+          "memo": "Website development - Phase 1"
+        }
+      }'
+    ```
+
+
+    **Note:** When using the `create` endpoint, `due_at` and `scheduled_at` are required fields. The invoice
+    issue date (`inserted_at`) is automatically set when the invoice is created. All dates should be in
+    ISO8601 format (UTC).
+
+
+    **Response:**
+
+
+    ```json
+
+    {
+      "data": {
+        "id": "4a755746-ba45-4226-a669-aebc7ad3719c",
+        "status": "sent",
+        "amount": {"amount": 15000, "currency": "USD"},
+        "billing_contact": {
+          "email": "customer@example.com",
+          "name": "John Doe",
+          "company": "Acme Corp",
+          "title": null
+        },
+        "payment_link": "https://agree.com/pay/abc123token",
+        "payment_methods": ["card", "ach"],
+        "due_at": "2025-02-15T00:00:00Z",
+        "scheduled_at": "2025-02-01T00:00:00Z",
+        "memo": "Website development - Phase 1",
+        "inserted_at": "2025-01-15T10:30:00Z"
+      }
+    }
+
+    ```
+
+
+    The `payment_link` is a secure URL you can share with your customer. When `automatic_delivery` is
+    enabled (the default), Agree emails this link to the billing contact automatically.
+
+
+    ### Create and Send in One Step
+
+
+    For convenience, you can create and send an invoice in a single API call:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "billing_contact": {
+            "email": "customer@example.com",
+            "name": "John Doe"
+          },
+          "amount": {"amount": 15000, "currency": "USD"},
+          "payment_methods": ["card", "ach"],
+          "memo": "Website development - Phase 1"
+        }
+      }'
+    ```
+
+
+    **Note:** When using `create_and_send`, `scheduled_at` is always set to the current UTC time (to send
+    immediately), regardless of any value you provide. If `due_at` is not provided, it will default to
+    the current UTC time. The invoice issue date (`inserted_at`) is automatically set when the invoice
+    is created. You can optionally specify a custom `due_at`:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "billing_contact": {
+            "email": "customer@example.com",
+            "name": "John Doe"
+          },
+          "amount": {"amount": 15000, "currency": "USD"},
+          "payment_methods": ["card", "ach"],
+          "due_at": "2025-02-15T00:00:00Z",
+          "memo": "Website development - Phase 1"
+        }
+      }'
+    ```
+
+
+    Note that `scheduled_at` is always set to the current UTC time when using `create_and_send`, so it's
+    not necessary (and will be ignored) if provided.
+
+
+    **Response:**
+
+
+    ```json
+
+    {
+      "data": {
+        "id": "4a755746-ba45-4226-a669-aebc7ad3719c",
+        "status": "sending",
+        "amount": {"amount": 15000, "currency": "USD"},
+        ...
+      }
+    }
+
+    ```
+
+
+    The response includes `status: "sending"` to indicate the invoice is being sent asynchronously. The
+    invoice will transition to `sent` once the email is delivered.
+
+
+    **When to use `create_and_send`:**
+
+    - You want to create and send an invoice immediately in one request
+
+    - You don't need to review or modify the invoice before sending
+
+    - You want to simplify your integration by combining two operations
+
+
+    **When to use `create` + `send` separately:**
+
+    - You need to review the invoice before sending
+
+    - You want to add additional information after creation
+
+    - You're creating invoices in bulk and want to send them later
+
+
+    ### Amounts
+
+
+    Amounts are specified in the smallest currency unit. For USD, this means cents:
+
+
+    | You want to charge | Send this amount |
+
+    |--------------------|------------------|
+
+    | $100.00 | `10000` |
+
+    | $1,500.50 | `150050` |
+
+    | $0.99 | `99` |
+
+
+    ```json
+
+    {
+      "amount": {
+        "amount": 10000,
+        "currency": "USD"
+      }
+    }
+
+    ```
+
+
+    ### Specifying the Customer
+
+
+    You can specify who receives the invoice in two ways:
+
+
+    **Using `billing_contact`** (recommended for new customers):
+
+    ```json
+
+    {
+      "invoice": {
+        "billing_contact": {
+          "email": "customer@example.com",
+          "name": "John Doe"
+        }
+      }
+    }
+
+    ```
+
+    This creates or updates a contact automatically.
+
+
+    **Using `contact_id`** (for existing contacts):
+
+    ```json
+
+    {
+      "invoice": {
+        "contact_id": "550e8400-e29b-41d4-a716-446655440000"
+      }
+    }
+
+    ```
+
+
+    You cannot use both in the same request.
+
+
+    ## Invoice Lifecycle
+
+
+    Every invoice progresses through a series of statuses:
+
+
+    ```
+
+    ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
+
+    │ created │ ──► │  sent   │ ──► │   due   │ ──► │  paid   │
+
+    └─────────┘     └─────────┘     └─────────┘     └─────────┘
+                                         │
+                                         ├──► processing ──► paid
+                                         │                    │
+                                         │                    └──► failed
+                                         │
+                                         └──► canceled
+    ```
+
+
+    | Status | Description |
+
+    |--------|-------------|
+
+    | `created` | Invoice created but not yet sent to customer |
+
+    | `sending` | Invoice is being sent (temporary status returned by API) |
+
+    | `sent` | Invoice emailed to customer, awaiting payment |
+
+    | `due` | Invoice is past the scheduled send date |
+
+    | `processing` | Payment initiated, waiting for confirmation |
+
+    | `paid` | Payment completed successfully |
+
+    | `failed` | Payment attempt failed (customer can retry) |
+
+    | `canceled` | Invoice was canceled (no payment expected) |
+
+    | `refunded` | Payment was refunded after completion |
+
+    | `draft` | Template-only, not yet converted to invoice |
+
+
+    **Note:** The `sending` status is a temporary status returned by the API when you use `create_and_send`
+    or `send` endpoints. It indicates the invoice is being sent asynchronously. When you query the invoice
+    later, it will show `sent` (or `due` if sent immediately with a past due date).
+
+
+    ## Recurring Invoices
+
+
+    Set up automatic recurring invoices by providing `recurring_options`:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "billing_contact": {"email": "customer@example.com"},
+          "amount": {"amount": 99900, "currency": "USD"},
+          "payment_methods": ["card"],
+          "recurring_options": {
+            "schedule": "custom",
+            "repeat_frequency": 1,
+            "repeat_unit": "month",
+            "recurring_end_type": "never",
+            "reminder_schedule": "weekly"
+          }
+        }
+      }'
+    ```
+
+
+    ### Recurring Options
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `schedule` | string | `none` (one-time) or `custom` (recurring) |
+
+    | `repeat_frequency` | integer | How often to repeat (e.g., `1` = every period, `2` = every other)
+    |
+
+    | `repeat_unit` | string | `week` or `month` |
+
+    | `repeat_on_weekday` | string | For weekly: `monday`, `tuesday`, etc. |
+
+    | `repeat_on_type` | string | For monthly: `day_of_month` or `day_of_week` |
+
+    | `repeat_on_day` | integer | Day of month (1-31) |
+
+    | `repeat_on_week` | integer | Week of month (1-5, where 5 = last) |
+
+    | `recurring_end_type` | string | `never`, `date`, or `count` |
+
+    | `recurring_end_date` | datetime | End date (when type is `date`) |
+
+    | `recurring_end_count` | integer | Number of occurrences (when type is `count`) |
+
+    | `reminder_schedule` | string | `none`, `daily`, `weekly`, or `monthly` |
+
+    | `forward_payment_enabled` | boolean | Allow paying future invoices early |
+
+    | `pass_on_fees_enabled` | boolean | Pass processing fees to the payer at checkout (default: false)
+    |
+
+
+    ### Examples
+
+
+    **Monthly on the 15th, forever:**
+
+    ```json
+
+    {
+      "schedule": "custom",
+      "repeat_frequency": 1,
+      "repeat_unit": "month",
+      "repeat_on_type": "day_of_month",
+      "repeat_on_day": 15,
+      "recurring_end_type": "never"
+    }
+
+    ```
+
+
+    **Every 2 weeks on Monday, for 6 occurrences:**
+
+    ```json
+
+    {
+      "schedule": "custom",
+      "repeat_frequency": 2,
+      "repeat_unit": "week",
+      "repeat_on_weekday": "monday",
+      "recurring_end_type": "count",
+      "recurring_end_count": 6
+    }
+
+    ```
+
+
+    ## Listing and Filtering Invoices
+
+
+    Retrieve invoices with powerful filtering options:
+
+
+    ```bash
+
+    # Get all invoices
+
+    curl https://api.agree.com/api/v1/invoices \
+      -H "Authorization: Bearer YOUR_API_KEY"
+
+    # Filter by status
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=sent,due" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+
+    # Filter by date range (invoices due in January 2025)
+
+    curl "https://api.agree.com/api/v1/invoices?date_type=due_at&date_start=2025-01-01&date_end=2025-01-31"
+    \
+      -H "Authorization: Bearer YOUR_API_KEY"
+
+    # Filter by amount range ($100-$500)
+
+    curl "https://api.agree.com/api/v1/invoices?amount_min=100&amount_max=500" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ### Query Parameters
+
+
+    | Parameter | Type | Description |
+
+    |-----------|------|-------------|
+
+    | `page` | integer | Page number (default: 1) |
+
+    | `page_size` | integer | Items per page (default: 10, max: 100) |
+
+    | `statuses` | string | Comma-separated status filter |
+
+    | `date_start` | string | Start date (YYYY-MM-DD) |
+
+    | `date_end` | string | End date (YYYY-MM-DD) |
+
+    | `date_type` | string | Which date to filter: `paid_at`, `due_at`, `scheduled_at` |
+
+    | `date_timezone` | string | Timezone for dates (default: `Etc/UTC`) |
+
+    | `amount_min` | number | Minimum amount in dollars |
+
+    | `amount_max` | number | Maximum amount in dollars |
+
+    | `customer` | string | Filter by customer/company name |
+
+    | `include_drafts` | boolean | Include draft invoices |
+
+
+    ## Sending an Invoice
+
+
+    If you created an invoice without sending it (or want to resend), you can send it explicitly:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/4a755746-ba45-4226-a669-aebc7ad3719c/send \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    **Response:**
+
+
+    ```json
+
+    {
+      "data": {
+        "id": "4a755746-ba45-4226-a669-aebc7ad3719c",
+        "status": "sending",
+        ...
+      }
+    }
+
+    ```
+
+
+    The response includes `status: "sending"` to indicate the invoice is being sent asynchronously. The
+    invoice will transition to `sent` once the email is delivered.
+
+
+    **Note:** You can only send invoices that are in `created` status. Invoices that are already `sent`,
+    `due`, or `paid` cannot be resent using this endpoint.
+
+
+    ## Updating an Invoice
+
+
+    Update invoice details before payment:
+
+
+    ```bash
+
+    curl -X PUT https://api.agree.com/api/v1/invoices/4a755746-ba45-4226-a669-aebc7ad3719c \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "invoice": {
+          "memo": "Updated memo - Website development Phase 1",
+          "due_at": "2025-02-28T00:00:00Z"
+        }
+      }'
+    ```
+
+
+    **Note:** Some fields cannot be changed after certain status transitions (e.g., you can't change the
+    amount after payment processing begins).
+
+
+    ## Downloading invoice and receipt PDFs
+
+
+    These endpoints return a **presigned S3 URL** in JSON (not the raw PDF bytes). The URL is valid for
+    **one hour** (`expires_in: 3600`). Use a GET to the returned `url` to download the file (e.g. redirect
+    the user or fetch server-side).
+
+
+    ### Invoice PDF
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices/INVOICE_ID/pdf" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    **Response (200):**
+
+
+    ```json
+
+    {
+      "data": {
+        "url": "https://...",
+        "expires_in": 3600
+      }
+    }
+
+    ```
+
+
+    If the PDF is not in storage yet, the API waits a **short time** (default **5 seconds** of server-side
+    polling, configurable via `invoice_pdf_api_inline_wait_ms`) for the file to appear—first in case another
+    client already started generation, then after enqueueing generation if needed. If it is still not
+    ready, you receive **202 Accepted** with a **`Retry-After`** header (default **3** seconds, `invoice_pdf_api_retry_after_seconds`)
+    and a JSON body such as `data: { "status": "pending", "retry_after_seconds": 3, ... }`. **Repeat the
+    same GET** until you get **200** with `data.url`. This avoids holding many long-lived HTTP connections
+    when PDFs are slow or the render queue is busy.
+
+
+    ### Receipt PDF
+
+
+    Only available when the invoice status is **`paid`**. Otherwise the API returns **422**.
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices/INVOICE_ID/receipt_pdf" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    **Response (200):** Same shape as invoice PDF (`data.url`, `data.expires_in`).
+
+
+    If the invoice is paid but the receipt file is not available yet, the API returns **404**.
+
+
+    ## Canceling an Invoice
+
+
+    Cancel an unpaid invoice:
+
+
+    ```bash
+
+    curl -X DELETE https://api.agree.com/api/v1/invoices/4a755746-ba45-4226-a669-aebc7ad3719c \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ## Fields Reference
+
+
+    ### Core Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `id` | UUID | Unique invoice identifier |
+
+    | `name` | string | Invoice display name |
+
+    | `status` | string | Current status (see lifecycle) |
+
+    | `amount` | object | Amount with `amount` (cents) and `currency` |
+
+    | `memo` | string | Notes visible to customer (max 255 chars) |
+
+    | `organization_id` | UUID | Your organization's ID |
+
+    | `agreement_id` | UUID | Associated agreement (if any) |
+
+
+    ### Customer Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `billing_contact` | object | Customer info: `email`, `name`, `company`, `title` |
+
+    | `payment_link` | string | URL where customer can pay |
+
+
+    ### Payment Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `payment_methods` | array | Accepted methods: `ach`, `card`, `wire` |
+
+    | `payment_type` | string | `invoice`, `payment`, or `subscription` |
+
+    | `used_payment_method` | string | Method used for successful payment |
+
+    | `sales_tax_percentage` | number | Tax percentage applied |
+
+
+    ### Date Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `scheduled_at` | datetime | When invoice will be/was sent |
+
+    | `sent_at` | datetime | When invoice was emailed |
+
+    | `due_at` | datetime | Payment due date |
+
+    | `paid_at` | datetime | When payment completed |
+
+    | `processing_at` | datetime | When processing started |
+
+    | `authorized_at` | datetime | When payment was authorized |
+
+    | `inserted_at` | datetime | When invoice was created |
+
+
+    ### Delivery Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `delivery_method` | string | How invoice is delivered (`email`) |
+
+    | `automatic_delivery` | boolean | Auto-send when created |
+
+
+    ### Recurring Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `recurring_options` | object | Recurring schedule configuration |
+
+    | `recurring_sequence` | integer | Position in recurring series (1, 2, 3...) |
+
+
+    ### Reminder Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `reminder_scheduled_at` | datetime | Next reminder date |
+
+    | `last_reminder_sent_at` | datetime | Last reminder sent |
+
+
+    ### External Reference Fields
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `external_id` | string | Your external invoice ID |
+
+    | `external_customer_id` | string | Your external customer ID |
+
+    | `destination_organization_id` | UUID | For B2B: receiving organization |
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  tags:
+  - Invoices
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-invoices-api-openapi.yml
+  - type: Documentation
+    url: https://secure.agree.com/documentation
+  - type: APIReference
+    url: https://secure.agree.com/documentation
+  - type: GettingStarted
+    url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+  - type: Authentication
+    url: https://secure.agree.com/documentation#section/Introduction/Authentication
+  - type: ErrorCatalog
+    url: errors/agree-com-problem-types.yml
+  - type: DataModel
+    url: data-model/agree-com-data-model.yml
+  - type: Conventions
+    url: conventions/agree-com-conventions.yml
+  - type: AsyncAPI
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: Webhooks
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: ToolCrosswalk
+    url: mcp/agree-com-tool-crosswalk.yml
+- aid: agree-com:agree-com-reports-api
+  name: Agree.com Reports API
+  description: >-
+    Read-only analytics for revenue, cashflow, and accounts receivable recovery.
+
+
+    ## Overview
+
+
+    Report endpoints mirror the in-app **Reports** dashboards (`/reports/revenue`, `/reports/cashflow`,
+    `/reports/recovery`). All metrics are scoped to the authenticated API key's organization.
+
+
+    Amounts use the `Money` object shape: `amount` is in the smallest currency unit (cents for USD) and
+    `currency` is an ISO 4217 code (e.g. `"USD"`).
+
+
+    ## Revenue
+
+
+    | Endpoint | Description |
+
+    |----------|-------------|
+
+    | `GET /reports/revenue/stats` | ARR, MRR, growth, NRR, top-5 concentration |
+
+    | `GET /reports/revenue/chart` | Monthly MRR/ARR history and forecast |
+
+    | `GET /reports/revenue/customers` | Customers ranked by paid revenue |
+
+    | `GET /reports/revenue/customers_by_mrr` | Customers ranked by subscription MRR |
+
+
+    ## Cashflow
+
+
+    | Endpoint | Description |
+
+    |----------|-------------|
+
+    | `GET /reports/cashflow/stats` | Cash collected MTD, outstanding total, DSO, fail rate |
+
+    | `GET /reports/cashflow/chart` | Monthly cash collected history and forecast |
+
+    | `GET /reports/cashflow/outstanding_invoices` | Outstanding invoice list |
+
+    | `GET /reports/cashflow/forecast` | Expected cash in next 30/60/90 days |
+
+
+    ## Recovery
+
+
+    | Endpoint | Description |
+
+    |----------|-------------|
+
+    | `GET /reports/recovery/aging/chart` | Aging buckets by month |
+
+    | `GET /reports/recovery/aging/invoices` | Invoices grouped by aging bucket |
+
+    | `GET /reports/recovery/aging/trend` | Overdue totals and average days overdue |
+
+    | `GET /reports/recovery/leakage/stats` | Counts/amounts by invoice stage |
+
+    | `GET /reports/recovery/leakage/waterfall` | Stage waterfall for leakage analysis |
+
+    | `GET /reports/recovery/leakage/stalled_invoices` | Stalled invoices |
+
+    | `GET /reports/recovery/leakage/stage_durations` | Average days between stages |
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  tags:
+  - Reports
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-reports-api-openapi.yml
+  - type: Documentation
+    url: https://secure.agree.com/documentation
+  - type: APIReference
+    url: https://secure.agree.com/documentation
+  - type: GettingStarted
+    url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+  - type: Authentication
+    url: https://secure.agree.com/documentation#section/Introduction/Authentication
+  - type: ErrorCatalog
+    url: errors/agree-com-problem-types.yml
+  - type: DataModel
+    url: data-model/agree-com-data-model.yml
+  - type: Conventions
+    url: conventions/agree-com-conventions.yml
+  - type: AsyncAPI
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: Webhooks
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: ToolCrosswalk
+    url: mcp/agree-com-tool-crosswalk.yml
+- aid: agree-com:agree-com-webhooks-api
+  name: Agree.com Webhooks API
+  description: >-
+    Receive real-time notifications when events occur in your Agree account.
+
+
+    ## Overview
+
+
+    Webhooks push event data to your application as soon as something happens - like when an invoice is
+    paid or a payment fails. This eliminates the need to poll the API for updates and lets you respond
+    to events instantly.
+
+
+    **Key concepts:**
+
+
+    - You register a URL endpoint that Agree will call when events occur
+
+    - Each endpoint can subscribe to specific event types
+
+    - Webhook payloads are signed so you can verify they came from Agree
+
+    - Failed deliveries are automatically retried with exponential backoff
+
+
+    ## Quick Setup
+
+
+    ### 1. Create an Endpoint
+
+
+    Register a URL to receive webhooks:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "webhook_endpoint": {
+          "url": "https://your-app.com/webhooks/agree",
+          "events": ["invoice.paid", "invoice.failed"]
+        }
+      }'
+    ```
+
+
+    **Response:**
+
+
+    ```json
+
+    {
+      "data": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "url": "https://your-app.com/webhooks/agree",
+        "events": ["invoice.paid", "invoice.failed"],
+        "active": true,
+        "failure_count": 0,
+        "secret": "whsec_abc123xyz789...",
+        "inserted_at": "2025-01-15T10:30:00Z",
+        "updated_at": "2025-01-15T10:30:00Z"
+      }
+    }
+
+    ```
+
+
+    **Important:** Save the `secret` - it's only returned once at creation. You'll need it to verify webhook
+    signatures.
+
+
+    ### 2. Handle Incoming Webhooks
+
+
+    When an event occurs, Agree sends a POST request to your endpoint:
+
+
+    ```json
+
+    {
+      "event": "invoice.paid",
+      "payload": {
+        "id": "4a755746-ba45-4226-a669-aebc7ad3719c",
+        "status": "paid",
+        "amount": {"amount": 15000, "currency": "USD"},
+        "paid_at": "2025-01-20T14:30:00Z"
+      }
+    }
+
+    ```
+
+
+    ### 3. Verify the Signature
+
+
+    Always verify webhooks came from Agree before processing them. See [Verifying Webhooks](#verifying-webhooks)
+    below.
+
+
+    ### 4. Test Your Integration
+
+
+    Send a test webhook to verify your endpoint works:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints/550e8400-e29b-41d4-a716-446655440000/test
+    \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ## Available Events
+
+
+    Subscribe to the events your application needs:
+
+
+    | Event | Description | When it fires |
+
+    |-------|-------------|---------------|
+
+    | `invoice.created` | Invoice was created | After POST /invoices |
+
+    | `invoice.sent` | Invoice emailed to customer | When delivery completes |
+
+    | `invoice.due` | Invoice reached due status | When status becomes `due`: either the scheduled job
+    runs after `sent` (past `due_at`), or the invoice is sent already at/past `due_at` (immediate `due`)
+    |
+
+    | `invoice.paid` | Payment successful | After payment confirmation |
+
+    | `invoice.failed` | Payment attempt failed | After payment rejection |
+
+    | `invoice.canceled` | Invoice was canceled | After DELETE /invoices |
+
+    | `invoice.refunded` | Invoice payment was refunded | After refund is processed |
+
+    | `agreement.created` | Agreement was created | After POST /agreements |
+
+    | `agreement.sent` | Agreement was sent to recipients | When status changes to 'sent' |
+
+    | `agreement.signed` | Agreement was signed by a recipient | When a recipient signs |
+
+    | `agreement.executed` | Agreement was fully executed | When all signers have signed |
+
+    | `webhook.test` | Test event | When you trigger a test |
+
+
+    **Tip:** Start with `invoice.paid` and `invoice.failed` - these are the most important for payment
+    integrations.
+
+
+    ## Webhook Payload
+
+
+    Each webhook request includes:
+
+
+    ### Headers
+
+
+    | Header | Description |
+
+    |--------|-------------|
+
+    | `Content-Type` | `application/json` |
+
+    | `X-Webhook-Signature` | HMAC-SHA256 signature (hex, lowercase) |
+
+    | `X-Webhook-Timestamp` | Unix timestamp when sent |
+
+
+    ### Body
+
+
+    ```json
+
+    {
+      "event": "invoice.paid",
+      "payload": {
+        // Full invoice object with all fields
+      }
+    }
+
+    ```
+
+
+    The `payload` contains the complete resource object, so you have all the data you need without making
+    additional API calls.
+
+
+    For agreement events (`agreement.created`, `agreement.sent`, `agreement.signed`, `agreement.executed`),
+    the payload includes the `GET /api/v1/agreements/:id` response `data` fields — including flat recipient
+    fields such as `recipients[].email` and `recipients[].name`, and `field_values` (a map of `field_id`
+    to filled plain-text values). Webhooks also include nested `recipients[].user` and `recipients[].contact`
+    objects for backwards compatibility; prefer the flat fields for new integrations.
+
+
+    ## Verifying Webhooks
+
+
+    **Always verify webhook signatures** before processing. This ensures the request actually came from
+    Agree and wasn't tampered with.
+
+
+    ### How Verification Works
+
+
+    1. Get the raw request body (before JSON parsing)
+
+    2. Compute HMAC-SHA256 using your endpoint's `secret` as the key
+
+    3. Hex-encode the result (lowercase)
+
+    4. Compare to the `X-Webhook-Signature` header using constant-time comparison
+
+
+    ### Node.js Example
+
+
+    ```javascript
+
+    const crypto = require('crypto');
+
+
+    function verifyWebhookSignature(rawBody, signatureHeader, secret) {
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(rawBody)
+        .digest('hex');
+
+      return crypto.timingSafeEqual(
+        Buffer.from(expectedSignature),
+        Buffer.from(signatureHeader)
+      );
+    }
+
+
+    // Express middleware example
+
+    app.post('/webhooks/agree', express.raw({type: 'application/json'}), (req, res) => {
+      const signature = req.headers['x-webhook-signature'];
+
+      if (!verifyWebhookSignature(req.body, signature, process.env.AGREE_WEBHOOK_SECRET)) {
+        return res.status(401).send('Invalid signature');
+      }
+
+      const event = JSON.parse(req.body);
+
+      switch (event.event) {
+        case 'invoice.paid':
+          // Handle successful payment
+          break;
+        case 'invoice.failed':
+          // Handle failed payment
+          break;
+      }
+
+      res.status(200).send('OK');
+    });
+
+    ```
+
+
+    ### Python Example
+
+
+    ```python
+
+    import hmac
+
+    import hashlib
+
+    from flask import Flask, request
+
+
+    app = Flask(__name__)
+
+
+    def verify_webhook_signature(raw_body, signature_header, secret):
+        expected_signature = hmac.new(
+            secret.encode('utf-8'),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(expected_signature, signature_header)
+
+    @app.route('/webhooks/agree', methods=['POST'])
+
+    def handle_webhook():
+        signature = request.headers.get('X-Webhook-Signature')
+
+        if not verify_webhook_signature(request.data, signature, AGREE_WEBHOOK_SECRET):
+            return 'Invalid signature', 401
+
+        event = request.json
+
+        if event['event'] == 'invoice.paid':
+            # Handle successful payment
+            pass
+        elif event['event'] == 'invoice.failed':
+            # Handle failed payment
+            pass
+
+        return 'OK', 200
+    ```
+
+
+    ## Managing Endpoints
+
+
+    ### List All Endpoints
+
+
+    ```bash
+
+    curl https://api.agree.com/api/v1/webhook_endpoints \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ### Update an Endpoint
+
+
+    Change the subscribed events or URL:
+
+
+    ```bash
+
+    curl -X PUT https://api.agree.com/api/v1/webhook_endpoints/550e8400-e29b-41d4-a716-446655440000 \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "webhook_endpoint": {
+          "events": ["invoice.paid", "invoice.failed", "invoice.created"]
+        }
+      }'
+    ```
+
+
+    ### Disable an Endpoint
+
+
+    Set `active` to false to temporarily stop receiving webhooks:
+
+
+    ```bash
+
+    curl -X PUT https://api.agree.com/api/v1/webhook_endpoints/550e8400-e29b-41d4-a716-446655440000 \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "webhook_endpoint": {
+          "active": false
+        }
+      }'
+    ```
+
+
+    ### Delete an Endpoint
+
+
+    ```bash
+
+    curl -X DELETE https://api.agree.com/api/v1/webhook_endpoints/550e8400-e29b-41d4-a716-446655440000
+    \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+
+    ## Retry Policy
+
+
+    If your endpoint returns a non-2xx status code or times out, Agree automatically retries:
+
+
+    | Attempt | Delay |
+
+    |---------|-------|
+
+    | 1 | Immediate |
+
+    | 2 | ~1 minute |
+
+    | 3 | ~5 minutes |
+
+    | 4 | ~30 minutes |
+
+    | 5 | ~2 hours |
+
+
+    After 5 failed attempts, the webhook is marked as failed and the endpoint's `failure_count` is incremented.
+
+
+    **Tip:** Monitor `failure_count` to detect integration issues. If it keeps increasing, check your
+    endpoint's logs.
+
+
+    ## Best Practices
+
+
+    1. **Respond quickly** - Return 200 within 5 seconds, then process asynchronously
+
+    2. **Handle duplicates** - Webhooks may occasionally be sent more than once; use idempotency
+
+    3. **Verify signatures** - Never skip verification in production
+
+    4. **Use HTTPS** - Required in production for security
+
+    5. **Log everything** - Store webhook payloads for debugging and auditing
+
+
+    ## Fields Reference
+
+
+    | Field | Type | Description |
+
+    |-------|------|-------------|
+
+    | `id` | UUID | Unique endpoint identifier |
+
+    | `url` | string | Your webhook URL (HTTPS required in production) |
+
+    | `events` | array | Event types this endpoint receives |
+
+    | `active` | boolean | Whether the endpoint is receiving webhooks |
+
+    | `failure_count` | integer | Consecutive failed deliveries |
+
+    | `secret` | string | Signing secret (only returned on creation) |
+
+    | `inserted_at` | datetime | When the endpoint was created |
+
+    | `updated_at` | datetime | When the endpoint was last modified |
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  tags:
+  - Webhooks
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-webhooks-api-openapi.yml
+  - type: Documentation
+    url: https://secure.agree.com/documentation
+  - type: APIReference
+    url: https://secure.agree.com/documentation
+  - type: GettingStarted
+    url: https://secure.agree.com/documentation#section/Introduction/Quick-Start
+  - type: Authentication
+    url: https://secure.agree.com/documentation#section/Introduction/Authentication
+  - type: ErrorCatalog
+    url: errors/agree-com-problem-types.yml
+  - type: DataModel
+    url: data-model/agree-com-data-model.yml
+  - type: Conventions
+    url: conventions/agree-com-conventions.yml
+  - type: AsyncAPI
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
+  - type: Webhooks
+    url: asyncapi/agree-com-webhooks-asyncapi.yml
   - type: ToolCrosswalk
     url: mcp/agree-com-tool-crosswalk.yml
 maintainers:
