@@ -1,0 +1,530 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API!'
+  title: Agree Webhooks API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- description: Receive real-time notifications when events occur in your Agree account.
+  name: Webhooks
+paths:
+  /api/v1/webhooks:
+    get:
+      callbacks: {}
+      description: Returns all webhook endpoints for the authenticated organization.
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.index
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointsResponse'
+          description: Webhook endpoints list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: List webhook endpoints
+      tags:
+      - Webhooks
+    post:
+      callbacks: {}
+      description: 'Creates a new webhook endpoint for the authenticated organization.
+
+
+        **Important:** The signing `secret` is only returned once in the response when the endpoint is created.
+
+        Store it securely as it cannot be retrieved again.
+
+
+        Use the secret to verify webhook signatures by computing an HMAC-SHA256 of the request body
+
+        and comparing it to the `X-Agree-Signature` header.'
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointParams'
+        description: Webhook endpoint params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointCreatedResponse'
+          description: Webhook endpoint created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create webhook endpoint
+      tags:
+      - Webhooks
+  /api/v1/webhooks/{id}:
+    delete:
+      callbacks: {}
+      description: Deletes a webhook endpoint by ID.
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.delete
+      parameters:
+      - description: Webhook endpoint ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Webhook endpoint deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Delete webhook endpoint
+      tags:
+      - Webhooks
+    get:
+      callbacks: {}
+      description: Returns a single webhook endpoint by ID.
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.show
+      parameters:
+      - description: Webhook endpoint ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+          description: Webhook endpoint
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get webhook endpoint
+      tags:
+      - Webhooks
+    patch:
+      callbacks: {}
+      description: Updates an existing webhook endpoint.
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.update (2)
+      parameters:
+      - description: Webhook endpoint ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointParams'
+        description: Webhook endpoint params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+          description: Webhook endpoint updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update webhook endpoint
+      tags:
+      - Webhooks
+    put:
+      callbacks: {}
+      description: Updates an existing webhook endpoint.
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.update
+      parameters:
+      - description: Webhook endpoint ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointParams'
+        description: Webhook endpoint params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+          description: Webhook endpoint updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update webhook endpoint
+      tags:
+      - Webhooks
+  /api/v1/webhooks/test:
+    post:
+      callbacks: {}
+      description: 'Sends a test webhook payload to all endpoints subscribed to the `webhook.test` event.
+
+
+        This is useful for verifying your webhook endpoint is properly configured to receive events.
+
+
+        The test payload contains:
+
+        ```json
+
+        {
+
+        "test": true,
+
+        "message": "This is a test webhook from Agree",
+
+        "timestamp": "2024-01-15T10:30:00Z"
+
+        }
+
+        ```'
+      operationId: AgreeWeb.API.V1.WebhookEndpointController.test
+      parameters: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookTestResponse'
+          description: Test webhooks queued
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: No endpoints subscribed to webhook.test
+      security:
+      - bearer: []
+      summary: Send test webhook
+      tags:
+      - Webhooks
+components:
+  schemas:
+    WebhookEndpointCreatedResponse:
+      description: Response containing a newly created webhook endpoint with signing secret
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookEndpointWithSecret'
+      required:
+      - data
+      title: WebhookEndpointCreatedResponse
+      type: object
+    WebhookTestResponse:
+      description: Response after triggering test webhooks
+      example:
+        data:
+          failed: 0
+          job_ids:
+          - 123
+          - 124
+          message: Test webhooks have been queued and will be sent shortly
+          successful: 2
+          total: 2
+      properties:
+        data:
+          properties:
+            failed:
+              description: Number of failed queue attempts
+              type: integer
+            job_ids:
+              description: IDs of queued webhook delivery jobs
+              items:
+                type: integer
+              type: array
+            message:
+              description: Status message
+              type: string
+            successful:
+              description: Number of successfully queued webhooks
+              type: integer
+            total:
+              description: Total number of endpoints that received test
+              type: integer
+          type: object
+      required:
+      - data
+      title: WebhookTestResponse
+      type: object
+    WebhookEndpoint:
+      description: A webhook endpoint configuration
+      example:
+        active: true
+        events:
+        - invoice.created
+        - invoice.paid
+        failure_count: 0
+        id: 550e8400-e29b-41d4-a716-446655440000
+        inserted_at: '2024-01-15T10:30:00Z'
+        updated_at: '2024-01-15T10:30:00Z'
+        url: https://example.com/webhooks
+      properties:
+        active:
+          description: Whether the endpoint is active
+          type: boolean
+        events:
+          description: List of event types this endpoint is subscribed to
+          items:
+            type: string
+          type: array
+        failure_count:
+          description: Number of consecutive delivery failures
+          type: integer
+        id:
+          description: Unique webhook endpoint identifier
+          format: uuid
+          type: string
+        inserted_at:
+          description: When the endpoint was created
+          format: date-time
+          type: string
+        updated_at:
+          description: When the endpoint was last updated
+          format: date-time
+          type: string
+        url:
+          description: URL where webhook events will be sent
+          format: uri
+          type: string
+      required:
+      - id
+      - url
+      - events
+      - active
+      title: WebhookEndpoint
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    WebhookEndpointWithSecret:
+      description: Webhook endpoint with signing secret (only returned on creation)
+      properties:
+        active:
+          description: Whether the endpoint is active
+          type: boolean
+        events:
+          description: List of event types this endpoint is subscribed to
+          items:
+            type: string
+          type: array
+        failure_count:
+          description: Number of consecutive delivery failures
+          type: integer
+        id:
+          description: Unique webhook endpoint identifier
+          format: uuid
+          type: string
+        inserted_at:
+          description: When the endpoint was created
+          format: date-time
+          type: string
+        secret:
+          description: Signing secret for verifying webhook payloads. Only returned once on creation.
+          type: string
+        updated_at:
+          description: When the endpoint was last updated
+          format: date-time
+          type: string
+        url:
+          description: URL where webhook events will be sent
+          format: uri
+          type: string
+      required:
+      - id
+      - url
+      - events
+      - active
+      - secret
+      title: WebhookEndpointWithSecret
+      type: object
+    WebhookEndpointsResponse:
+      description: Response containing a list of webhook endpoints
+      properties:
+        data:
+          description: List of webhook endpoints
+          items:
+            $ref: '#/components/schemas/WebhookEndpoint'
+          type: array
+      required:
+      - data
+      title: WebhookEndpointsResponse
+      type: object
+    WebhookEndpointResponse:
+      description: Response containing a single webhook endpoint
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookEndpoint'
+      required:
+      - data
+      title: WebhookEndpointResponse
+      type: object
+    WebhookEndpointParams:
+      description: Parameters for creating or updating a webhook endpoint
+      example:
+        webhook_endpoint:
+          events:
+          - invoice.created
+          - invoice.paid
+          - invoice.failed
+          url: https://example.com/webhooks
+      properties:
+        webhook_endpoint:
+          properties:
+            active:
+              description: Whether the endpoint should be active
+              type: boolean
+            events:
+              description: List of event types to subscribe to
+              items:
+                type: string
+              type: array
+            url:
+              description: URL where webhook events will be sent
+              format: uri
+              type: string
+          required:
+          - url
+          - events
+          type: object
+      required:
+      - webhook_endpoint
+      title: WebhookEndpointParams
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http

@@ -1,0 +1,489 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API!'
+  title: Agree Customers API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- name: Customers
+paths:
+  /api/v1/customers/{id}:
+    get:
+      callbacks: {}
+      description: Returns a single customer, including its primary contact and every linked contact. Requires the `customers` feature for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.CustomerController.show
+      parameters:
+      - description: Customer ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+          description: Customer
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get customer
+      tags:
+      - Customers
+    patch:
+      callbacks: {}
+      description: Updates a customer's name/business_type/address and/or promotes a contact to primary via `primary_contact_id`. Billing identity is stable across primary-contact changes. Requires the `customers` feature for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.CustomerController.update (2)
+      parameters:
+      - description: Customer ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerParams'
+        description: Customer params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+          description: Customer updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update customer
+      tags:
+      - Customers
+    put:
+      callbacks: {}
+      description: Updates a customer's name/business_type/address and/or promotes a contact to primary via `primary_contact_id`. Billing identity is stable across primary-contact changes. Requires the `customers` feature for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.CustomerController.update
+      parameters:
+      - description: Customer ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerParams'
+        description: Customer params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+          description: Customer updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update customer
+      tags:
+      - Customers
+  /api/v1/customers:
+    get:
+      callbacks: {}
+      description: Returns a paginated list of customers with their primary contact (the invoice recipient). Use it to discover customer IDs for the invoice endpoints' `customer_id`. Requires the `customers` feature for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.CustomerController.index
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+      - description: Filter by customer name (fuzzy search)
+        in: query
+        name: name
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomersResponse'
+          description: Customers list
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+      security:
+      - bearer: []
+      summary: List customers
+      tags:
+      - Customers
+    post:
+      callbacks: {}
+      description: Creates a customer (the business entity billed by invoices) with a primary contact — provide exactly one of `primary_contact` or `contact_id` (see the request schema). The name must be unique within the organization. Requires the `customers` feature for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.CustomerController.create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerParams'
+        description: Customer params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+          description: Customer created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create customer
+      tags:
+      - Customers
+components:
+  schemas:
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    Customer:
+      description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
+      example:
+        business_type: company
+        id: 8d1e3859-aef8-4234-97b5-3d4b89b8157c
+        name: Acme Corp
+        primary_contact:
+          email: john@acme.com
+          name: John Doe
+      properties:
+        business_type:
+          description: Customer business type
+          enum:
+          - company
+          - individual
+          - non_profit
+          - government_entity
+          type: string
+        id:
+          description: Customer identifier
+          format: uuid
+          type: string
+        name:
+          description: Customer (company) name
+          type: string
+        primary_contact:
+          description: The customer's primary contact (the invoice recipient).
+          properties:
+            email:
+              description: Primary contact email
+              format: email
+              type:
+              - string
+              - 'null'
+            name:
+              description: Primary contact name
+              type:
+              - string
+              - 'null'
+          type:
+          - object
+          - 'null'
+      required:
+      - id
+      - name
+      title: Customer
+      type: object
+    CustomerResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/Customer'
+      required:
+      - data
+      title: CustomerResponse
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    CustomersResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Customer'
+          type: array
+        pagination:
+          properties:
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total_entries:
+              type: integer
+            total_pages:
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: CustomersResponse
+      type: object
+    CustomerParams:
+      description: 'Parameters for creating or updating a customer.
+
+
+        On create, provide exactly one of `primary_contact` (inline contact, created or reused by email) or `contact_id` (an existing contact not linked to another customer); the primary contact is the invoice recipient. On update, all fields are optional and `primary_contact_id` promotes a contact already linked to this customer (or an unlinked one, which gets linked).
+
+        '
+      properties:
+        customer:
+          properties:
+            address:
+              type:
+              - object
+              - 'null'
+            business_type:
+              description: 'Default: company'
+              enum:
+              - company
+              - individual
+              - non_profit
+              - government_entity
+              type: string
+            contact_id:
+              description: Create-only. Existing contact to link as primary. Mutually exclusive with primary_contact.
+              format: uuid
+              type:
+              - string
+              - 'null'
+            name:
+              description: Customer name, unique within the organization
+              type: string
+            primary_contact:
+              description: Create-only. Contact to create and link as primary. Mutually exclusive with contact_id.
+              properties:
+                company:
+                  type:
+                  - string
+                  - 'null'
+                email:
+                  format: email
+                  type: string
+                name:
+                  type: string
+                title:
+                  type:
+                  - string
+                  - 'null'
+              required:
+              - email
+              type:
+              - object
+              - 'null'
+            primary_contact_id:
+              description: Update-only. Contact to promote to primary.
+              format: uuid
+              type: string
+          required:
+          - name
+          type: object
+      required:
+      - customer
+      title: CustomerParams
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http

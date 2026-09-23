@@ -1,0 +1,31 @@
+{
+  "provider": "agree-com",
+  "sources": [
+    "_original/agree-com-api-openapi-original.json"
+  ],
+  "outputs": [
+    "agree-com-agreements-api-openapi.yml",
+    "agree-com-contacts-api-openapi.yml",
+    "agree-com-customers-api-openapi.yml",
+    "agree-com-invoices-api-openapi.yml",
+    "agree-com-reports-api-openapi.yml",
+    "agree-com-webhooks-api-openapi.yml"
+  ],
+  "archived": [],
+  "errors": [],
+  "warnings": [],
+  "notes": [
+    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
+    "agree-com-api-openapi-original.json: upgraded openapi 3.0.0 -> OpenAPI 3.2.0",
+    "agree-com-api-openapi-original.json: declared missing tag: Customers",
+    "apis.yml register: already-registered"
+  ],
+  "skipped": [
+    "agree-com-agreements-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agree-com-contacts-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agree-com-customers-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agree-com-invoices-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agree-com-reports-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "agree-com-webhooks-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
+}

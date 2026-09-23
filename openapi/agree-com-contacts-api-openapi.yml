@@ -1,0 +1,505 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API!'
+  title: Agree Contacts API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- description: Manage your organization's contacts - the people and companies you do business with.
+  name: Contacts
+paths:
+  /api/v1/contacts:
+    get:
+      callbacks: {}
+      description: Returns a paginated list of contacts for the authenticated organization.
+      operationId: AgreeWeb.API.V1.ContactController.index
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+      - description: 'Items per page (default: 10)'
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+      - description: Filter by email (fuzzy search)
+        in: query
+        name: email
+        required: false
+        schema:
+          type: string
+      - description: Filter by company name (fuzzy search)
+        in: query
+        name: company
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactsResponse'
+          description: Contacts list
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: List contacts
+      tags:
+      - Contacts
+    post:
+      callbacks: {}
+      description: 'Creates a new contact for the authenticated organization.
+
+
+        If a user with the provided email doesn''t exist, one will be created automatically.
+
+        The email must be unique within the organization''s contacts.'
+      operationId: AgreeWeb.API.V1.ContactController.create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactParams'
+        description: Contact params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create contact
+      tags:
+      - Contacts
+  /api/v1/contacts/{id}:
+    delete:
+      callbacks: {}
+      description: Deletes a contact by ID.
+      operationId: AgreeWeb.API.V1.ContactController.delete
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Contact deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Delete contact
+      tags:
+      - Contacts
+    get:
+      callbacks: {}
+      description: Returns a single contact by ID.
+      operationId: AgreeWeb.API.V1.ContactController.show
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get contact
+      tags:
+      - Contacts
+    patch:
+      callbacks: {}
+      description: Updates an existing contact.
+      operationId: AgreeWeb.API.V1.ContactController.update (2)
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactParams'
+        description: Contact params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update contact
+      tags:
+      - Contacts
+    put:
+      callbacks: {}
+      description: Updates an existing contact.
+      operationId: AgreeWeb.API.V1.ContactController.update
+      parameters:
+      - description: Contact ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactParams'
+        description: Contact params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+          description: Contact updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update contact
+      tags:
+      - Contacts
+components:
+  schemas:
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    ContactResponse:
+      description: Response containing a single contact
+      properties:
+        data:
+          $ref: '#/components/schemas/Contact'
+      required:
+      - data
+      title: ContactResponse
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    ContactsResponse:
+      description: Response containing a list of contacts
+      properties:
+        data:
+          description: List of contacts
+          items:
+            $ref: '#/components/schemas/Contact'
+          type: array
+        pagination:
+          description: Pagination information
+          properties:
+            page:
+              description: Current page number
+              type: integer
+            page_size:
+              description: Number of items per page
+              type: integer
+            total_entries:
+              description: Total number of contacts
+              type: integer
+            total_pages:
+              description: Total number of pages
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: ContactsResponse
+      type: object
+    ContactParams:
+      description: Parameters for creating or updating a contact
+      example:
+        contact:
+          company: Acme Inc
+          email: john.doe@example.com
+          name: John Doe
+          title: CEO
+      properties:
+        contact:
+          properties:
+            address:
+              description: Contact's mailing address
+              type:
+              - string
+              - 'null'
+            company:
+              description: Contact's company name
+              type:
+              - string
+              - 'null'
+            email:
+              description: Contact's email address
+              format: email
+              type: string
+            name:
+              description: Contact's full name
+              type: string
+            title:
+              description: Contact's job title
+              type:
+              - string
+              - 'null'
+          required:
+          - name
+          - email
+          type: object
+      required:
+      - contact
+      title: ContactParams
+      type: object
+    Contact:
+      description: A contact in the organization's address book
+      example:
+        address: 123 Main St, New York, NY 10001
+        company: Acme Inc
+        email: john.doe@example.com
+        id: 550e8400-e29b-41d4-a716-446655440000
+        inserted_at: '2024-01-15T10:30:00Z'
+        name: John Doe
+        organization_id: 660e8400-e29b-41d4-a716-446655440000
+        title: CEO
+        updated_at: '2024-01-15T10:30:00Z'
+      properties:
+        address:
+          description: Contact's mailing address
+          type:
+          - string
+          - 'null'
+        company:
+          description: Contact's company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Contact's email address
+          format: email
+          type: string
+        id:
+          description: Unique contact identifier
+          format: uuid
+          type: string
+        inserted_at:
+          description: When the contact was created
+          format: date-time
+          type: string
+        name:
+          description: Contact's full name
+          type: string
+        organization_id:
+          description: Organization that owns this contact
+          format: uuid
+          type: string
+        title:
+          description: Contact's job title
+          type:
+          - string
+          - 'null'
+        updated_at:
+          description: When the contact was last updated
+          format: date-time
+          type: string
+      required:
+      - id
+      - name
+      - email
+      - organization_id
+      title: Contact
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http

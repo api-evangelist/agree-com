@@ -1,0 +1,1691 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API!'
+  title: Agreements API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- description: Create, send, and manage agreements with recipients and field assignments.
+  name: Agreements
+paths:
+  /api/v1/agreements/{id}/pdf:
+    get:
+      callbacks: {}
+      description: 'Returns a presigned URL to download the agreement PDF for the **current revision** (same source as the Agree app document menu).
+
+
+        If the PDF is not in storage yet or is stale vs. the revision, the server first waits briefly in case another request already
+
+        kicked off generation, then may enqueue SSR rendering and waits up to a **short inline budget**
+
+        (default 5 seconds, `invoice_pdf_api_inline_wait_ms`). If the file is still not ready, responds
+
+        with **202 Accepted**, a `Retry-After` header (default 3 seconds, `invoice_pdf_api_retry_after_seconds`),
+
+        and `data.status: "pending"`. **Repeat the same GET** until you receive **200** with `data.url`.'
+      operationId: AgreeWeb.API.V1.AgreementController.pdf
+      parameters:
+      - description: Agreement ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedDownloadResponse'
+          description: Presigned download URL
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementPdfPendingResponse'
+          description: PDF not ready; retry after Retry-After
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Download agreement PDF
+      tags:
+      - Agreements
+  /api/v1/agreements/{id}/send:
+    post:
+      callbacks: {}
+      description: Sends an agreement to its recipients. Updates the agreement status to 'sent' and sends emails if delivery_mode is 'managed'.
+      operationId: AgreeWeb.API.V1.AgreementController.send
+      parameters:
+      - description: Agreement ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgreementSendParams'
+        description: Send params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementResponse'
+          description: Agreement sent
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Send agreement
+      tags:
+      - Agreements
+  /api/v1/agreements/create_and_send:
+    post:
+      callbacks: {}
+      description: 'Convenience endpoint that creates an agreement from a template and sends it immediately.
+
+
+        Combines create and send operations in a single request.'
+      operationId: AgreeWeb.API.V1.AgreementController.create_and_send
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgreementCreateParams'
+        description: Create and send params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementResponse'
+          description: Agreement created and sent
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Template not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create and send agreement
+      tags:
+      - Agreements
+  /api/v1/agreements/templates:
+    get:
+      callbacks: {}
+      description: Returns a list of agreement templates for the authenticated organization with field names.
+      operationId: AgreeWeb.API.V1.AgreementController.templates
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatesResponse'
+          description: Templates list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: List agreement templates
+      tags:
+      - Agreements
+  /api/v1/agreements:
+    get:
+      callbacks: {}
+      description: Returns a paginated list of agreements for the authenticated organization.
+      operationId: AgreeWeb.API.V1.AgreementController.index
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+      - description: 'Items per page (default: 10)'
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementsResponse'
+          description: Agreements list
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: List agreements
+      tags:
+      - Agreements
+    post:
+      callbacks: {}
+      description: 'Creates a new agreement from a template for the authenticated organization.
+
+
+        The agreement will be created with status ''drafted'' by default.
+
+        Requires a template_id and supports prefilling fields via field_values mapping.
+
+
+        **Important:** Exactly one recipient must have the `owner` role. This must be the account holder (the person whose API key is being used). The account holder is also a contact - use GET /api/v1/contacts to find your Contact ID.
+
+
+        For each recipient, you can optionally provide either:
+
+        - `contact_id` to reference an existing contact
+
+        - `contact` with `email` and `name` (and optionally `company` and `title`) to automatically create or update a contact
+
+
+        Both will set the recipient''s contact automatically. You cannot provide both for the same recipient.
+
+
+        **Template recipients and fields:** Parties (recipients) from the template are copied onto the new agreement, and each field keeps the same assignment as on the template (matched by contact). Request `recipients` can add more parties or update roles for contacts you include.
+
+
+        **assigned_fields:** Optional per-recipient list of template field ids/names. When provided, only those fields are reassigned to that recipient; all other fields keep their template assignments (they do not fall back to the owner).
+
+
+        **field_values:** Prefills values in the document without changing who each field is assigned to.'
+      operationId: AgreeWeb.API.V1.AgreementController.create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgreementCreateParams'
+        description: Agreement create params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementResponse'
+          description: Agreement created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Template not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create agreement from template
+      tags:
+      - Agreements
+  /api/v1/agreements/templates/{id}:
+    get:
+      callbacks: {}
+      description: Returns a single template by ID with field names.
+      operationId: AgreeWeb.API.V1.AgreementController.show_template
+      parameters:
+      - description: Template ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+          description: Template
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get template
+      tags:
+      - Agreements
+  /api/v1/agreements/{id}:
+    delete:
+      callbacks: {}
+      description: Deletes an agreement by ID (soft delete).
+      operationId: AgreeWeb.API.V1.AgreementController.delete
+      parameters:
+      - description: Agreement ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Agreement deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Delete agreement
+      tags:
+      - Agreements
+    get:
+      callbacks: {}
+      description: Returns a single agreement by ID.
+      operationId: AgreeWeb.API.V1.AgreementController.show
+      parameters:
+      - description: Agreement ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementResponse'
+          description: Agreement
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get agreement
+      tags:
+      - Agreements
+    patch:
+      callbacks: {}
+      description: 'Updates an existing agreement.
+
+
+        The following fields cannot be updated directly:
+
+        - deleted_at
+
+        - executed_at
+
+        - organization_id
+
+        - preview_url
+
+        - status
+
+        - version'
+      operationId: AgreeWeb.API.V1.AgreementController.update (2)
+      parameters:
+      - description: Agreement ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgreementParams'
+        description: Agreement params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementResponse'
+          description: Agreement updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update agreement
+      tags:
+      - Agreements
+    put:
+      callbacks: {}
+      description: 'Updates an existing agreement.
+
+
+        The following fields cannot be updated directly:
+
+        - deleted_at
+
+        - executed_at
+
+        - organization_id
+
+        - preview_url
+
+        - status
+
+        - version'
+      operationId: AgreeWeb.API.V1.AgreementController.update
+      parameters:
+      - description: Agreement ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgreementParams'
+        description: Agreement params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgreementResponse'
+          description: Agreement updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update agreement
+      tags:
+      - Agreements
+components:
+  schemas:
+    AgreementResponse:
+      description: Response containing a single agreement
+      properties:
+        data:
+          $ref: '#/components/schemas/Agreement'
+      required:
+      - data
+      title: AgreementResponse
+      type: object
+    BillingContact:
+      description: Billing contact information. Creates or updates a contact.
+      example:
+        company: Acme Corp
+        email: customer@example.com
+        name: John Doe
+        title: Software Engineer
+      properties:
+        company:
+          description: Company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Contact email address (required). Creates or gets a contact with this email.
+          format: email
+          type: string
+        name:
+          description: Contact name
+          type:
+          - string
+          - 'null'
+        title:
+          description: Job title
+          type:
+          - string
+          - 'null'
+      required:
+      - email
+      title: BillingContact
+      type: object
+    TemplatesResponse:
+      description: Response containing a list of templates
+      properties:
+        data:
+          description: List of templates
+          items:
+            $ref: '#/components/schemas/Template'
+          type: array
+      required:
+      - data
+      title: TemplatesResponse
+      type: object
+    AgreementsResponse:
+      description: Response containing a list of agreements
+      properties:
+        data:
+          description: List of agreements
+          items:
+            $ref: '#/components/schemas/Agreement'
+          type: array
+        pagination:
+          description: Pagination information
+          properties:
+            page:
+              description: Current page number
+              type: integer
+            page_size:
+              description: Number of items per page
+              type: integer
+            total_entries:
+              description: Total number of agreements
+              type: integer
+            total_pages:
+              description: Total number of pages
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: AgreementsResponse
+      type: object
+    RecipientContact:
+      description: Contact data to create or update a contact
+      example:
+        company: Example Corp
+        email: newrecipient@example.com
+        name: Jane Doe
+        title: CEO
+      properties:
+        company:
+          description: Company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Email address of the contact
+          format: email
+          type: string
+        name:
+          description: Name of the contact
+          type: string
+        title:
+          description: Job title
+          type:
+          - string
+          - 'null'
+      required:
+      - email
+      - name
+      title: RecipientContact
+      type: object
+    AgreementParams:
+      description: Parameters for updating an agreement
+      example:
+        agreement:
+          ends_at: '2024-12-31T23:59:59Z'
+          forward_signature_enabled: true
+          name: Service Agreement
+          payments_enabled: false
+          recipients:
+          - contact_id: 770e8400-e29b-41d4-a716-446655440000
+            role: signer
+          - contact:
+              company: Example Corp
+              email: newrecipient@example.com
+              name: Jane Doe
+              title: CEO
+            role: viewer
+          reminder_schedule: weekly
+          signing_order: []
+          signing_order_enabled: false
+          starts_at: '2024-01-01T00:00:00Z'
+      properties:
+        agreement:
+          properties:
+            current_signing_order:
+              description: Current position in the signing order
+              type:
+              - integer
+              - 'null'
+            ends_at:
+              description: When the agreement ends (ISO8601 format)
+              format: date-time
+              type:
+              - string
+              - 'null'
+            field_values:
+              additionalProperties:
+                $ref: '#/components/schemas/RichTextValue'
+              description: Map of field_id to value for prefilling fields and template variables. Values can be a legacy string or a typed rich text object. If `content_type` is omitted in object form, `plaintext` is used by default.
+              type: object
+            forward_signature_enabled:
+              description: Whether forward signature is enabled
+              type: boolean
+            last_reminder_sent_at:
+              description: When the last reminder was sent (ISO8601 format)
+              format: date-time
+              type:
+              - string
+              - 'null'
+            name:
+              description: Agreement name
+              type: string
+            payments_enabled:
+              description: Whether payments are enabled for this agreement
+              type: boolean
+            recipients:
+              description: 'List of recipients with their assigned fields (replaces existing recipients).
+
+
+                Each recipient must provide either `contact_id` or `contact` (but not both).
+
+                - `contact_id`: Reference an existing contact
+
+                - `contact`: Create or update a contact with email and name (required), and optionally company and title
+
+                '
+              items:
+                properties:
+                  assigned_fields:
+                    description: List of field names to assign to this recipient
+                    items:
+                      type: string
+                    type: array
+                  contact:
+                    allOf:
+                    - $ref: '#/components/schemas/RecipientContact'
+                    description: Contact data to create or update a contact
+                  contact_id:
+                    description: Contact ID of the recipient
+                    format: uuid
+                    type: string
+                  role:
+                    description: Role of the recipient
+                    enum:
+                    - signer
+                    - viewer
+                    - payee
+                    type: string
+                required:
+                - role
+                type: object
+              type: array
+            reminder_schedule:
+              description: Reminder schedule frequency
+              enum:
+              - none
+              - daily
+              - weekly
+              - monthly
+              type:
+              - string
+              - 'null'
+            reminder_scheduled_at:
+              description: When the next reminder is scheduled (ISO8601 format)
+              format: date-time
+              type:
+              - string
+              - 'null'
+            signing_order:
+              description: Recipient or template role IDs while drafting; recipient IDs after send
+              items:
+                type: string
+              type: array
+            signing_order_enabled:
+              description: Whether signing order is enabled
+              type: boolean
+            starts_at:
+              description: When the agreement starts (ISO8601 format)
+              format: date-time
+              type:
+              - string
+              - 'null'
+          required:
+          - name
+          - starts_at
+          type: object
+      required:
+      - agreement
+      title: AgreementParams
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    PresignedDownloadResponse:
+      description: Time-limited URL to download a PDF from object storage
+      properties:
+        data:
+          properties:
+            expires_in:
+              description: URL lifetime in seconds
+              type: integer
+            url:
+              description: Presigned GET URL; expires after expires_in seconds
+              format: uri
+              type: string
+          required:
+          - url
+          - expires_in
+          type: object
+      required:
+      - data
+      title: PresignedDownloadResponse
+      type: object
+    Template:
+      description: An agreement template
+      example:
+        field_names:
+        - signature_field
+        - date_field
+        - name_field
+        id: 550e8400-e29b-41d4-a716-446655440000
+        name: Service Agreement Template
+      properties:
+        field_names:
+          description: List of field names available in this template
+          items:
+            type: string
+          type: array
+        id:
+          description: Unique template identifier
+          format: uuid
+          type: string
+        name:
+          description: Template name
+          type: string
+      required:
+      - id
+      - name
+      - field_names
+      title: Template
+      type: object
+    AgreementSendParams:
+      description: Parameters for sending an agreement
+      example:
+        delivery_method: email
+        delivery_mode: managed
+        message: Please review and sign this agreement
+        reminder_schedule: weekly
+      properties:
+        delivery_method:
+          description: Delivery method (only valid for managed mode)
+          enum:
+          - email
+          type: string
+        delivery_mode:
+          description: 'Delivery mode: ''embedded'' (emails suppressed) or ''managed'' (Agree sends emails)'
+          enum:
+          - embedded
+          - managed
+          type: string
+        message:
+          description: Optional message to include in email (only valid for managed mode)
+          type:
+          - string
+          - 'null'
+        reminder_schedule:
+          description: Reminder schedule override (only valid for managed mode)
+          enum:
+          - none
+          - daily
+          - weekly
+          - monthly
+          type:
+          - string
+          - 'null'
+      required:
+      - delivery_mode
+      title: AgreementSendParams
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    AgreementCreateParams:
+      description: Parameters for creating an agreement from a template
+      example:
+        delivery_mode: managed
+        field_values:
+          field_1: John Doe
+          field_2:
+            content: '**MSA** for _Acme Corp_'
+            content_type: markdown
+        invoice:
+          amount: 15000
+          billing_contact:
+            email: billing@example.com
+            name: Billing Contact
+          currency: USD
+          memo: Payment for services
+          payment_direction: receivable
+          payment_methods:
+          - card
+          - ach
+          payment_terms_days: 30
+          payment_terms_type: net
+        name: Service Agreement
+        payments_enabled: false
+        recipients:
+        - assigned_fields:
+          - company_address
+          - date
+          contact_id: 770e8400-e29b-41d4-a716-446655440000
+          role: owner
+        - assigned_fields:
+          - signature_field
+          - date_field
+          contact:
+            company: Example Corp
+            email: newrecipient@example.com
+            name: Jane Doe
+            title: CEO
+          role: signer
+        reminder_schedule: weekly
+        signing_order_enabled: false
+        template_id: 550e8400-e29b-41d4-a716-446655440000
+      properties:
+        delivery_mode:
+          description: 'Delivery mode: ''embedded'' (emails suppressed) or ''managed'' (Agree sends emails)'
+          enum:
+          - embedded
+          - managed
+          type: string
+        ends_at:
+          description: When the agreement ends (ISO8601 format)
+          format: date-time
+          type:
+          - string
+          - 'null'
+        field_values:
+          additionalProperties:
+            $ref: '#/components/schemas/RichTextValue'
+          description: Map of field_id to value for prefilling fields and template variables. Values can be a legacy string or a typed rich text object. If `content_type` is omitted in object form, `plaintext` is used by default.
+          type: object
+        invoice:
+          description: 'Invoice to create with this agreement. Creates an invoice template associated with the agreement.
+
+
+            One of `billing_contact`, `contact_id`, or `customer_id` is required when providing an invoice.
+
+            Either `amount`/`currency` or `line_items` is required (if line_items are provided, amount is calculated from them).
+
+
+            IMPORTANT: `amount` and `unit_price.amount` are INTEGERS in the smallest currency unit (cents for USD), NOT dollars. A $150 invoice is `amount: 15000`. Multiply dollar amounts by 100.
+
+            '
+          properties:
+            amount:
+              description: Integer invoice amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars. Required if line_items is not provided.
+              type:
+              - integer
+              - 'null'
+            automatic_delivery:
+              default: true
+              description: Send invoice automatically
+              type:
+              - boolean
+              - 'null'
+            automatic_payment:
+              default: false
+              description: Enable automatic payment
+              type:
+              - boolean
+              - 'null'
+            billing_contact:
+              allOf:
+              - $ref: '#/components/schemas/BillingContact'
+              description: 'Billing contact information. Creates or updates a contact.
+
+                Cannot be used together with contact_id or customer_id.
+
+                '
+            contact_id:
+              description: 'ID of an existing contact to use for this invoice.
+
+                Cannot be used together with billing_contact or customer_id.
+
+                '
+              format: uuid
+              type:
+              - string
+              - 'null'
+            currency:
+              description: ISO 4217 currency code (e.g., USD). Required if line_items is not provided.
+              type:
+              - string
+              - 'null'
+            customer_id:
+              description: 'ID of an existing customer (business entity) to bill; the recipient is the customer''s primary contact. Requires the `customers` feature to be enabled for the organization — discover ids via the customers endpoints. Cannot be used together with billing_contact or contact_id.
+
+                '
+              format: uuid
+              type:
+              - string
+              - 'null'
+            forward_payment_enabled:
+              default: true
+              description: Enable forward payment
+              type:
+              - boolean
+              - 'null'
+            issue_terms_date:
+              description: Specific date to schedule the invoice (when issue_terms_type is 'date')
+              format: date-time
+              type:
+              - string
+              - 'null'
+            issue_terms_days:
+              description: Number of days from now to schedule the invoice (when issue_terms_type is 'net')
+              type:
+              - integer
+              - 'null'
+            issue_terms_type:
+              description: 'Issue terms type - determines when the invoice is scheduled to be sent.
+
+                - ''net'': Schedule based on days from now (use issue_terms_days)
+
+                - ''date'': Schedule for a specific date (use issue_terms_date)
+
+                Defaults to ''net'' if not provided.
+
+                '
+              enum:
+              - net
+              - date
+              type:
+              - string
+              - 'null'
+            line_items:
+              description: Invoice line items. If provided, amount is calculated from line items.
+              items:
+                properties:
+                  description:
+                    description: Line item description
+                    type: string
+                  quantity:
+                    description: Quantity
+                    type: number
+                  unit_price:
+                    description: Per-unit price. `amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. $25.00 = 2500.
+                    properties:
+                      amount:
+                        description: Integer price in the smallest currency unit (cents for USD). $25.00 = 2500, $1.00 = 100. Do NOT pass dollars.
+                        type: integer
+                      currency:
+                        description: ISO 4217 currency code
+                        example: USD
+                        type: string
+                    required:
+                    - amount
+                    - currency
+                    type: object
+                required:
+                - description
+                - quantity
+                - unit_price
+                type: object
+              type: array
+            memo:
+              description: Invoice memo
+              maxLength: 255
+              type:
+              - string
+              - 'null'
+            payment_direction:
+              description: Payment direction
+              enum:
+              - payable
+              - receivable
+              type:
+              - string
+              - 'null'
+            payment_methods:
+              description: Accepted payment methods
+              items:
+                enum:
+                - ach
+                - card
+                - wire
+                type: string
+              type: array
+            payment_terms_date:
+              description: Specific payment due date (when payment_terms_type is 'date')
+              format: date-time
+              type:
+              - string
+              - 'null'
+            payment_terms_days:
+              description: Payment terms days
+              type:
+              - integer
+              - 'null'
+            payment_terms_type:
+              description: Payment terms type
+              enum:
+              - net
+              - date
+              type:
+              - string
+              - 'null'
+            recurring_end_count:
+              description: Number of occurrences when recurring_end_type is count
+              type:
+              - integer
+              - 'null'
+            recurring_end_date:
+              description: End date when recurring_end_type is date
+              format: date-time
+              type:
+              - string
+              - 'null'
+            recurring_end_type:
+              default: never
+              description: How the recurring invoice ends
+              enum:
+              - never
+              - date
+              - count
+              type:
+              - string
+              - 'null'
+            reminder_schedule:
+              description: Reminder schedule for the invoice
+              enum:
+              - none
+              - daily
+              - weekly
+              - monthly
+              type:
+              - string
+              - 'null'
+            repeat_frequency:
+              description: How often to repeat (e.g., 1 for every week/month)
+              type:
+              - integer
+              - 'null'
+            repeat_on_day:
+              description: Day of month (1-31) when repeat_on_type is day_of_month
+              type:
+              - integer
+              - 'null'
+            repeat_on_type:
+              description: 'For monthly: repeat on day of month or day of week'
+              enum:
+              - day_of_month
+              - day_of_week
+              type:
+              - string
+              - 'null'
+            repeat_on_week:
+              description: Week position (1-5, 5=last) when repeat_on_type is day_of_week
+              type:
+              - integer
+              - 'null'
+            repeat_on_weekday:
+              description: Day of week when repeat_unit is week or repeat_on_type is day_of_week
+              enum:
+              - monday
+              - tuesday
+              - wednesday
+              - thursday
+              - friday
+              - saturday
+              - sunday
+              type:
+              - string
+              - 'null'
+            repeat_unit:
+              description: Repeat unit
+              enum:
+              - week
+              - month
+              type:
+              - string
+              - 'null'
+            sales_tax_percentage:
+              description: Sales tax percentage
+              type:
+              - number
+              - 'null'
+            schedule:
+              default: none
+              description: Schedule type for recurring invoices
+              enum:
+              - none
+              - custom
+              type:
+              - string
+              - 'null'
+          type:
+          - object
+          - 'null'
+        name:
+          description: Agreement name
+          type: string
+        payments_enabled:
+          description: Whether payments are enabled for this agreement
+          type: boolean
+        recipients:
+          description: 'List of recipients with their assigned fields.
+
+
+            **Important:** Exactly one recipient must have the `owner` role. This must be the account holder (the person whose API key is being used). Use GET /api/v1/contacts to find your Contact ID.
+
+
+            Each recipient must provide either `contact_id` or `contact` (but not both).
+
+            - `contact_id`: Reference an existing contact
+
+            - `contact`: Create or update a contact with email and name (required), and optionally company and title
+
+
+            Use `assigned_fields` to assign specific fields (by field name) to each recipient. Fields not assigned will default to the owner recipient.
+
+            '
+          items:
+            properties:
+              assigned_fields:
+                description: List of field names to assign to this recipient
+                items:
+                  type: string
+                type: array
+              contact:
+                allOf:
+                - $ref: '#/components/schemas/RecipientContact'
+                description: Contact data to create or update a contact
+              contact_id:
+                description: Contact ID of the recipient
+                format: uuid
+                type: string
+              role:
+                description: 'Role of the recipient.
+
+
+                  **Important:** Exactly one recipient must have the `owner` role. This must be the account holder (the person whose API key is being used). The `owner` role is converted internally to `signer` or `viewer` based on assigned fields.
+
+                  '
+                enum:
+                - owner
+                - signer
+                - viewer
+                - payee
+                type: string
+            required:
+            - role
+            type: object
+          type: array
+        reminder_schedule:
+          description: Reminder schedule frequency (only valid for managed mode)
+          enum:
+          - none
+          - daily
+          - weekly
+          - monthly
+          type:
+          - string
+          - 'null'
+        signing_order:
+          description: List of contact IDs in signing order
+          items:
+            format: uuid
+            type: string
+          type: array
+        signing_order_enabled:
+          description: Whether signing order is enabled
+          type: boolean
+        starts_at:
+          description: When the agreement starts (ISO8601 format)
+          format: date-time
+          type:
+          - string
+          - 'null'
+        template_id:
+          description: Template ID to create agreement from (required)
+          format: uuid
+          type: string
+      required:
+      - template_id
+      - name
+      title: AgreementCreateParams
+      type: object
+    Signer:
+      description: A signer with their assigned fields
+      example:
+        assigned_fields:
+        - signature_field
+        - date_field
+        contact_id: 770e8400-e29b-41d4-a716-446655440000
+        email: john.doe@example.com
+        name: John Doe
+        role: signer
+        signing_link: https://example.com/sign/abc123token
+        status: pending
+      properties:
+        assigned_fields:
+          description: List of field names assigned to this signer
+          items:
+            type: string
+          type: array
+        contact_id:
+          description: Contact ID of the signer
+          format: uuid
+          type: string
+        email:
+          description: Contact's email address
+          format: email
+          type:
+          - string
+          - 'null'
+        name:
+          description: Contact's name
+          type:
+          - string
+          - 'null'
+        role:
+          description: Role of the signer
+          enum:
+          - payee
+          - sender
+          - signer
+          - viewer
+          - viewer_hidden
+          type: string
+        signing_link:
+          description: URL to sign the agreement (null if user is not available or token cannot be created)
+          format: uri
+          type:
+          - string
+          - 'null'
+        status:
+          description: Status of the signer
+          enum:
+          - paid
+          - pending
+          - sent
+          - signed
+          - viewed
+          type: string
+      required:
+      - contact_id
+      - assigned_fields
+      - role
+      - status
+      title: Signer
+      type: object
+    AgreementPdfPendingResponse:
+      description: Agreement PDF generation is in progress; use Retry-After and retry the same URL
+      properties:
+        data:
+          properties:
+            message:
+              type: string
+            retry_after_seconds:
+              description: Same value as the Retry-After response header (seconds)
+              type: integer
+            status:
+              enum:
+              - pending
+              type: string
+          required:
+          - status
+          - retry_after_seconds
+          - message
+          type: object
+      required:
+      - data
+      title: AgreementPdfPendingResponse
+      type: object
+    TemplateResponse:
+      description: Response containing a single template
+      properties:
+        data:
+          allOf:
+          - $ref: '#/components/schemas/Template'
+          description: Template data
+      required:
+      - data
+      title: TemplateResponse
+      type: object
+    RichTextValue:
+      description: Either a legacy plain string or a typed rich text object. When object form omits content_type, plaintext is assumed.
+      example:
+        content: '<strong>Renewal Date</strong>: 2026-05-01'
+        content_type: html
+      oneOf:
+      - type: string
+      - properties:
+          content:
+            description: Raw text/html/markdown payload
+            type: string
+          content_type:
+            description: Input format for content. Defaults to plaintext when omitted.
+            enum:
+            - plaintext
+            - html
+            - markdown
+            type: string
+        required:
+        - content
+        type: object
+      title: RichTextValue
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Agreement:
+      description: An agreement in the system
+      example:
+        current_signing_order: 0
+        deleted_at: null
+        delivery_mode: managed
+        docs_url: https://secure.agree.com/docs/550e8400-e29b-41d4-a716-446655440000
+        ends_at: '2024-12-31T23:59:59Z'
+        executed_at: null
+        field_values:
+          legal_entity_name: Acme Inc
+          subscription_start_date: '2024-01-01'
+        forward_signature_enabled: true
+        id: 550e8400-e29b-41d4-a716-446655440000
+        invoice_template_id: null
+        last_reminder_sent_at: null
+        name: Service Agreement
+        organization_id: 660e8400-e29b-41d4-a716-446655440000
+        payments_enabled: false
+        preview_url: https://example.com/preview/550e8400
+        reminder_schedule: weekly
+        reminder_scheduled_at: '2024-01-22T10:00:00Z'
+        share_url: null
+        signers:
+        - assigned_fields:
+          - signature_field
+          - date_field
+          contact_id: 770e8400-e29b-41d4-a716-446655440000
+          role: signer
+          signing_link: https://example.com/sign/abc123token
+          status: pending
+        signing_order: []
+        signing_order_enabled: false
+        starts_at: '2024-01-01T00:00:00Z'
+        status: drafted
+        version: 0
+      properties:
+        current_signing_order:
+          description: Current position in the signing order
+          type:
+          - integer
+          - 'null'
+        deleted_at:
+          description: When the agreement was deleted (soft delete)
+          format: date-time
+          type:
+          - string
+          - 'null'
+        delivery_mode:
+          description: 'Delivery mode: ''embedded'' (emails suppressed) or ''managed'' (Agree sends emails)'
+          enum:
+          - embedded
+          - managed
+          type: string
+        docs_url:
+          description: 'URL to navigate to the agreement in the Agree web app.
+
+            Format: {base_url}/docs/{agreement_id}
+
+            Examples:
+
+            - https://secure.agree.com/docs/{agreement_id}
+
+            '
+          format: uri
+          type:
+          - string
+          - 'null'
+        ends_at:
+          description: When the agreement ends
+          format: date-time
+          type:
+          - string
+          - 'null'
+        executed_at:
+          description: When the agreement was executed
+          format: date-time
+          type:
+          - string
+          - 'null'
+        field_values:
+          additionalProperties:
+            type: string
+          description: 'Map of field_id to the current filled plain-text value. Includes values filled
+
+            during signing and template variable values snapshotted when the agreement is sent
+
+            (variables are resolved to plain text in the document at send time).
+
+            '
+          type: object
+        forward_signature_enabled:
+          description: Whether forward signature is enabled
+          type: boolean
+        id:
+          description: Unique agreement identifier
+          format: uuid
+          type: string
+        invoice_template_id:
+          description: ID of the invoice template linked to this agreement, when created with an invoice
+          format: uuid
+          type:
+          - string
+          - 'null'
+        last_reminder_sent_at:
+          description: When the last reminder was sent
+          format: date-time
+          type:
+          - string
+          - 'null'
+        name:
+          description: Agreement name
+          type: string
+        organization_id:
+          description: Organization that owns this agreement
+          format: uuid
+          type:
+          - string
+          - 'null'
+        payments_enabled:
+          description: Whether payments are enabled for this agreement
+          type: boolean
+        preview_url:
+          description: URL to preview the agreement
+          type:
+          - string
+          - 'null'
+        reminder_schedule:
+          description: Reminder schedule frequency
+          enum:
+          - none
+          - daily
+          - weekly
+          - monthly
+          type:
+          - string
+          - 'null'
+        reminder_scheduled_at:
+          description: When the next reminder is scheduled
+          format: date-time
+          type:
+          - string
+          - 'null'
+        share_url:
+          description: Share URL (generic share link) if enabled
+          format: uri
+          type:
+          - string
+          - 'null'
+        signers:
+          description: List of signers with their assigned fields
+          items:
+            $ref: '#/components/schemas/Signer'
+          type: array
+        signing_order:
+          description: Recipient or template role IDs while drafting; recipient IDs after send
+          items:
+            type: string
+          type: array
+        signing_order_enabled:
+          description: Whether signing order is enabled
+          type: boolean
+        starts_at:
+          description: When the agreement starts
+          format: date-time
+          type:
+          - string
+          - 'null'
+        status:
+          description: Agreement status
+          enum:
+          - created
+          - drafted
+          - executed
+          - renewed
+          - sent
+          - signed
+          - terminated
+          - viewed
+          type: string
+        version:
+          description: Agreement version number
+          type: integer
+      required:
+      - id
+      - name
+      - status
+      - version
+      - signers
+      title: Agreement
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http

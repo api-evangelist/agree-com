@@ -1,0 +1,1484 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API!'
+  title: Agree Invoices API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- description: Create, send, and track payment requests to your customers.
+  name: Invoices
+paths:
+  /api/v1/invoices/{id}/receipt_pdf:
+    get:
+      callbacks: {}
+      description: 'Returns a presigned URL to download the payment receipt PDF for a **paid** invoice
+
+        (same as the Agree app invoice menu). Returns 422 if the invoice is not paid.'
+      operationId: AgreeWeb.API.V1.InvoiceController.receipt_pdf
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedDownloadResponse'
+          description: Presigned download URL
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Receipt PDF not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Invoice not paid
+      security:
+      - bearer: []
+      summary: Download receipt PDF
+      tags:
+      - Invoices
+  /api/v1/invoices/{id}/mark_as_sent:
+    post:
+      callbacks: {}
+      description: Marks an invoice as sent. Optional sent_at (YYYY-MM-DD) picks the org-local calendar day; the server stores a UTC time in org business hours.
+      operationId: AgreeWeb.API.V1.InvoiceController.mark_as_sent
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                sent_at:
+                  description: Calendar day to record as sent (YYYY-MM-DD). Stored at a randomized business-hours time in the organization timezone.
+                  format: date
+                  type: string
+              type: object
+        description: Mark as sent params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice marked as sent
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Mark invoice as sent
+      tags:
+      - Invoices
+  /api/v1/invoices/{id}/send:
+    post:
+      callbacks: {}
+      description: 'Sends an invoice to its recipient. Schedules the invoice for sending via the invoice scheduler,
+
+        which will send email notifications to the recipient.'
+      operationId: AgreeWeb.API.V1.InvoiceController.send
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice sent
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Send invoice
+      tags:
+      - Invoices
+  /api/v1/invoices:
+    get:
+      callbacks: {}
+      description: Returns a paginated list of invoices for the authenticated organization.
+      operationId: AgreeWeb.API.V1.InvoiceController.index
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+      - description: 'Items per page (default: 10)'
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+      - description: 'Start date for filtering (ISO8601 format: YYYY-MM-DD)'
+        in: query
+        name: date_start
+        required: false
+        schema:
+          type: string
+      - description: 'End date for filtering (ISO8601 format: YYYY-MM-DD)'
+        in: query
+        name: date_end
+        required: false
+        schema:
+          type: string
+      - description: 'Date field to filter by. Valid values: paid_at, due_at, scheduled_at (default: scheduled_at)'
+        in: query
+        name: date_type
+        required: false
+        schema:
+          type: string
+      - description: 'Timezone for date filtering (default: Etc/UTC)'
+        in: query
+        name: date_timezone
+        required: false
+        schema:
+          type: string
+      - description: 'Filter by invoice statuses (comma-separated). Valid values: created, due, sent, canceled, paid, failed, refunded, draft'
+        in: query
+        name: statuses
+        required: false
+        schema:
+          type: string
+      - description: Minimum invoice amount (in dollars)
+        in: query
+        name: amount_min
+        required: false
+        schema:
+          type: number
+      - description: Maximum invoice amount (in dollars)
+        in: query
+        name: amount_max
+        required: false
+        schema:
+          type: number
+      - description: Filter by customer/company name (fuzzy search)
+        in: query
+        name: customer
+        required: false
+        schema:
+          type: string
+      - description: Include draft invoices (invoice templates without invoices)
+        in: query
+        name: include_drafts
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicesResponse'
+          description: Invoices list
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: List invoices
+      tags:
+      - Invoices
+    post:
+      callbacks: {}
+      description: 'Creates a new invoice for the authenticated organization.
+
+
+        Amounts are integers in the smallest currency unit (cents for USD), NOT dollars. A $150 invoice is `{"amount": 15000, "currency": "USD"}`. Multiply dollar amounts by 100.
+
+
+        Required fields:
+
+        - `due_at` - Payment due date (ISO8601 format, UTC)
+
+        - `scheduled_at` - When to send the invoice (ISO8601 format, UTC)
+
+
+        You can optionally provide:
+
+        - `recurring_options` to configure recurring settings. If not provided, the invoice will have no recurring schedule (schedule: "none").
+
+
+        You can optionally provide one of:
+
+        - `billing_contact` with `email` and `name` (and optionally `company` and `title`) to automatically create or update a contact
+
+        - `contact_id` to reference an existing contact
+
+        - `customer_id` to bill an existing customer (business entity); the recipient is the customer''s primary contact. Requires the `customers` feature to be enabled for the organization — discover ids via the customers endpoints.
+
+
+        All will set the invoice''s `billing_contact` automatically. They are mutually exclusive.'
+      operationId: AgreeWeb.API.V1.InvoiceController.create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceParams'
+        description: Invoice params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice created
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create invoice
+      tags:
+      - Invoices
+  /api/v1/invoices/{id}/pdf:
+    get:
+      callbacks: {}
+      description: 'Returns a presigned URL to download the invoice PDF (same source as the Agree app invoice menu).
+
+
+        If the PDF is not in storage yet, the server first waits briefly in case another request already
+
+        kicked off generation, then may enqueue generation and waits up to a **short inline budget**
+
+        (default 5 seconds, `invoice_pdf_api_inline_wait_ms`). If the file is still not ready, responds
+
+        with **202 Accepted**, a `Retry-After` header (default 3 seconds, `invoice_pdf_api_retry_after_seconds`),
+
+        and `data.status: "pending"`. **Repeat the same GET** until you receive **200** with `data.url`.'
+      operationId: AgreeWeb.API.V1.InvoiceController.pdf
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedDownloadResponse'
+          description: Presigned download URL
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePdfPendingResponse'
+          description: PDF not ready; retry after Retry-After
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Download invoice PDF
+      tags:
+      - Invoices
+  /api/v1/invoices/{id}:
+    delete:
+      callbacks: {}
+      description: Deletes an invoice by ID.
+      operationId: AgreeWeb.API.V1.InvoiceController.delete
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Invoice deleted
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Delete invoice
+      tags:
+      - Invoices
+    get:
+      callbacks: {}
+      description: Returns a single invoice by ID.
+      operationId: AgreeWeb.API.V1.InvoiceController.show
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get invoice
+      tags:
+      - Invoices
+    patch:
+      callbacks: {}
+      description: Updates an existing invoice.
+      operationId: AgreeWeb.API.V1.InvoiceController.update (2)
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceParams'
+        description: Invoice params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update invoice
+      tags:
+      - Invoices
+    put:
+      callbacks: {}
+      description: Updates an existing invoice.
+      operationId: AgreeWeb.API.V1.InvoiceController.update
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceParams'
+        description: Invoice params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice updated
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Update invoice
+      tags:
+      - Invoices
+  /api/v1/invoices/create_and_send:
+    post:
+      callbacks: {}
+      description: 'Convenience endpoint that creates an invoice and sends it immediately.
+
+
+        Combines create and send operations in a single request. The invoice will be scheduled for sending
+
+        via the invoice scheduler, which will send email notifications to the recipient.'
+      operationId: AgreeWeb.API.V1.InvoiceController.create_and_send
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceParams'
+        description: Invoice params
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice created and sent
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create and send invoice
+      tags:
+      - Invoices
+  /api/v1/invoices/{id}/mark_as_paid:
+    post:
+      callbacks: {}
+      description: Marks an invoice as paid. Optional paid_at (YYYY-MM-DD) picks the org-local calendar day; the server stores a UTC time in org business hours.
+      operationId: AgreeWeb.API.V1.InvoiceController.mark_as_paid
+      parameters:
+      - description: Invoice ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                paid_at:
+                  description: Calendar day to record as paid (YYYY-MM-DD). Stored at a randomized business-hours time in the organization timezone.
+                  format: date
+                  type: string
+                payment_method:
+                  description: 'Payment method used (default: manual)'
+                  enum:
+                  - manual
+                  - ach
+                  - card
+                  - wire
+                  type: string
+              type: object
+        description: Mark as paid params
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+          description: Invoice marked as paid
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Mark invoice as paid
+      tags:
+      - Invoices
+components:
+  schemas:
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    RecurringOptions:
+      description: 'Recurring invoice options. Configures how the invoice repeats over time.
+
+        '
+      example:
+        forward_payment_enabled: true
+        pass_on_fees_enabled: false
+        recurring_end_type: never
+        reminder_schedule: none
+        repeat_frequency: 1
+        repeat_on_day: 15
+        repeat_on_type: day_of_month
+        repeat_unit: month
+        schedule: custom
+      properties:
+        forward_payment_enabled:
+          default: true
+          description: Enable forward payment
+          type: boolean
+        pass_on_fees_enabled:
+          default: false
+          description: Pass processing fees to the payer at checkout
+          type: boolean
+        recurring_end_count:
+          description: Number of occurrences when recurring_end_type is count
+          type:
+          - integer
+          - 'null'
+        recurring_end_date:
+          description: End date when recurring_end_type is date
+          format: date-time
+          type:
+          - string
+          - 'null'
+        recurring_end_type:
+          default: never
+          description: How the recurring invoice ends
+          enum:
+          - never
+          - date
+          - count
+          type: string
+        reminder_schedule:
+          default: none
+          description: Reminder schedule
+          enum:
+          - none
+          - daily
+          - weekly
+          - monthly
+          type: string
+        repeat_frequency:
+          default: 1
+          description: How often to repeat (e.g., 1 for every week/month)
+          type: integer
+        repeat_on_day:
+          description: Day of month (1-31) when repeat_on_type is day_of_month
+          type:
+          - integer
+          - 'null'
+        repeat_on_type:
+          description: 'For monthly: repeat on day of month or day of week'
+          enum:
+          - day_of_month
+          - day_of_week
+          type:
+          - string
+          - 'null'
+        repeat_on_week:
+          description: Week position (1-5, 5=last) when repeat_on_type is day_of_week
+          type:
+          - integer
+          - 'null'
+        repeat_on_weekday:
+          description: Day of week when repeat_unit is week or repeat_on_type is day_of_week
+          enum:
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+          - sunday
+          type:
+          - string
+          - 'null'
+        repeat_unit:
+          default: month
+          description: Repeat unit
+          enum:
+          - week
+          - month
+          type: string
+        schedule:
+          default: none
+          description: Schedule type
+          enum:
+          - none
+          - custom
+          type: string
+      title: RecurringOptions
+      type: object
+    InvoicePdfPendingResponse:
+      description: PDF generation is in progress; use Retry-After and retry the same URL
+      properties:
+        data:
+          properties:
+            message:
+              type: string
+            retry_after_seconds:
+              description: Same value as the Retry-After response header (seconds)
+              type: integer
+            status:
+              enum:
+              - pending
+              type: string
+          required:
+          - status
+          - retry_after_seconds
+          - message
+          type: object
+      required:
+      - data
+      title: InvoicePdfPendingResponse
+      type: object
+    Customer:
+      description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
+      example:
+        business_type: company
+        id: 8d1e3859-aef8-4234-97b5-3d4b89b8157c
+        name: Acme Corp
+        primary_contact:
+          email: john@acme.com
+          name: John Doe
+      properties:
+        business_type:
+          description: Customer business type
+          enum:
+          - company
+          - individual
+          - non_profit
+          - government_entity
+          type: string
+        id:
+          description: Customer identifier
+          format: uuid
+          type: string
+        name:
+          description: Customer (company) name
+          type: string
+        primary_contact:
+          description: The customer's primary contact (the invoice recipient).
+          properties:
+            email:
+              description: Primary contact email
+              format: email
+              type:
+              - string
+              - 'null'
+            name:
+              description: Primary contact name
+              type:
+              - string
+              - 'null'
+          type:
+          - object
+          - 'null'
+      required:
+      - id
+      - name
+      title: Customer
+      type: object
+    InvoiceParams:
+      description: 'Parameters for creating or updating an invoice.
+
+
+        On **create**, the organization comes from the API key and an **invoice template** is created automatically from `recurring_options` (or defaults). Do not send `organization_id` or `invoice_template_id`; they are not API inputs.
+
+        '
+      example:
+        invoice:
+          amount:
+            amount: 15000
+            currency: USD
+          billing_contact:
+            company: Acme Corporation
+            email: jane@acme.com
+            name: Jane Smith
+          due_at: '2025-02-15T00:00:00Z'
+          memo: Consulting services - January 2025
+          payment_methods:
+          - card
+          - ach
+          recurring_options:
+            recurring_end_type: never
+            repeat_frequency: 1
+            repeat_unit: month
+            schedule: custom
+          scheduled_at: '2025-02-01T00:00:00Z'
+      properties:
+        invoice:
+          properties:
+            agreement_id:
+              description: Associated agreement
+              format: uuid
+              type:
+              - string
+              - 'null'
+            amount:
+              allOf:
+              - $ref: '#/components/schemas/Money'
+              description: 'Invoice amount. Required when creating an invoice.
+
+
+                `amount.amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. A $150 invoice is `{"amount": 15000, "currency": "USD"}`. If a user says "create a $50 invoice", send `5000`, not `50`.
+
+                '
+            automatic_delivery:
+              description: Send invoice automatically
+              type: boolean
+            billing_contact:
+              allOf:
+              - $ref: '#/components/schemas/BillingContact'
+              description: 'Billing contact information. Creates or updates a contact.
+
+                Cannot be used together with contact_id.
+
+                '
+            contact_id:
+              description: 'ID of an existing contact to use for this invoice.
+
+                Cannot be used together with billing_contact.
+
+                '
+              format: uuid
+              type:
+              - string
+              - 'null'
+            customer_id:
+              description: 'ID of an existing customer (business entity) to bill. The invoice recipient is the customer''s primary contact. Requires the `customers` feature to be enabled for the organization (403 otherwise) — discover ids via the customers endpoints. Cannot be used together with billing_contact or contact_id. Create-only: ignored on update.
+
+                '
+              format: uuid
+              type:
+              - string
+              - 'null'
+            delivery_method:
+              description: Delivery method (e.g., email)
+              type: string
+            due_at:
+              description: 'Payment due date (ISO8601 format, UTC).
+
+                Required when using the `create` endpoint. Optional for `create_and_send` (defaults to current UTC time if not provided).
+
+                '
+              format: date-time
+              type:
+              - string
+              - 'null'
+            line_items:
+              description: Invoice line items
+              items:
+                properties:
+                  description:
+                    description: Line item description
+                    type: string
+                  quantity:
+                    description: Quantity
+                    type: number
+                  unit_price:
+                    description: Per-unit price. `amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. $25.00 = 2500.
+                    properties:
+                      amount:
+                        description: Integer price in the smallest currency unit (cents for USD). $25.00 = 2500, $1.00 = 100. Do NOT pass dollars.
+                        type: integer
+                      currency:
+                        description: ISO 4217 currency code
+                        example: USD
+                        type: string
+                    type: object
+                type: object
+              type: array
+            memo:
+              description: Invoice memo
+              maxLength: 255
+              type:
+              - string
+              - 'null'
+            payment_methods:
+              description: Accepted payment methods
+              items:
+                enum:
+                - ach
+                - card
+                - wire
+                type: string
+              type: array
+            payment_type:
+              description: Type of payment
+              enum:
+              - invoice
+              - payment
+              - subscription
+              type: string
+            recurring_options:
+              allOf:
+              - $ref: '#/components/schemas/RecurringOptions'
+              description: 'Recurring options for the invoice. Configures how the invoice repeats over time.
+
+                If not provided, the invoice will have no recurring schedule (schedule: "none").
+
+                '
+            reviewed_at:
+              description: 'When the invoice was reviewed/approved (ISO8601 format, UTC).
+
+                Optional on create — defaults to the time of the API request. Invoices created via the API are
+
+                treated as already reviewed by the calling system, so they appear in default lists and are
+
+                eligible for the scheduler immediately. Pass an explicit value to record an earlier review time,
+
+                or omit to accept the current-time default.
+
+                '
+              format: date-time
+              type:
+              - string
+              - 'null'
+            sales_tax_percentage:
+              description: Sales tax percentage
+              type:
+              - number
+              - 'null'
+            scheduled_at:
+              description: 'When to send the invoice (ISO8601 format, UTC).
+
+                Required when using the `create` endpoint. For `create_and_send`, this is always set to the current UTC time regardless of the value provided.
+
+                '
+              format: date-time
+              type:
+              - string
+              - 'null'
+          type: object
+      required:
+      - invoice
+      title: InvoiceParams
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    InvoicesResponse:
+      description: Response containing a list of invoices
+      properties:
+        data:
+          description: List of invoices
+          items:
+            $ref: '#/components/schemas/Invoice'
+          type: array
+        pagination:
+          description: Pagination information
+          properties:
+            page:
+              description: Current page number
+              type: integer
+            page_size:
+              description: Number of items per page
+              type: integer
+            total_entries:
+              description: Total number of invoices
+              type: integer
+            total_pages:
+              description: Total number of pages
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: InvoicesResponse
+      type: object
+    Money:
+      description: 'Monetary amount with currency.
+
+
+        IMPORTANT: `amount` is always an INTEGER in the smallest currency unit — cents for USD, EUR, GBP, etc. Never pass dollars. $1.00 is `100`, $15.00 is `1500`, $150.00 is `15000`. To convert a dollar amount to cents, multiply by 100 and round to the nearest integer.
+
+        '
+      example:
+        amount: 15000
+        currency: USD
+      properties:
+        amount:
+          description: Integer amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars.
+          type: integer
+        currency:
+          description: ISO 4217 currency code
+          example: USD
+          type: string
+      required:
+      - amount
+      - currency
+      title: Money
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    BillingContact:
+      description: Billing contact information. Creates or updates a contact.
+      example:
+        company: Acme Corp
+        email: customer@example.com
+        name: John Doe
+        title: Software Engineer
+      properties:
+        company:
+          description: Company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Contact email address (required). Creates or gets a contact with this email.
+          format: email
+          type: string
+        name:
+          description: Contact name
+          type:
+          - string
+          - 'null'
+        title:
+          description: Job title
+          type:
+          - string
+          - 'null'
+      required:
+      - email
+      title: BillingContact
+      type: object
+    InvoiceResponse:
+      description: Response containing a single invoice
+      properties:
+        data:
+          $ref: '#/components/schemas/Invoice'
+      required:
+      - data
+      title: InvoiceResponse
+      type: object
+    PresignedDownloadResponse:
+      description: Time-limited URL to download a PDF from object storage
+      properties:
+        data:
+          properties:
+            expires_in:
+              description: URL lifetime in seconds
+              type: integer
+            url:
+              description: Presigned GET URL; expires after expires_in seconds
+              format: uri
+              type: string
+          required:
+          - url
+          - expires_in
+          type: object
+      required:
+      - data
+      title: PresignedDownloadResponse
+      type: object
+    Invoice:
+      additionalProperties: false
+      description: An invoice for a payment request
+      example:
+        agreement_id: null
+        amount:
+          amount: 15000
+          currency: USD
+        authorized_at: null
+        automatic_delivery: true
+        billing_contact:
+          company: Acme Corporation
+          email: jane@acme.com
+          name: Jane Smith
+          title: CFO
+        delivery_method: email
+        destination_organization_id: null
+        due_at: '2025-02-15T00:00:00Z'
+        external_customer_id: null
+        external_id: null
+        id: 550e8400-e29b-41d4-a716-446655440000
+        inserted_at: '2025-01-10T14:30:00Z'
+        invoice_url: https://secure.agree.com/invoices?modal=invoice-details&invoiceId=550e8400-e29b-41d4-a716-446655440000
+        last_reminder_sent_at: null
+        memo: Consulting services - January 2025
+        name: 'Invoice #1042'
+        organization_id: 660e8400-e29b-41d4-a716-446655440000
+        paid_at: null
+        payment_link: https://agree.com/pay/abc123token
+        payment_methods:
+        - card
+        - ach
+        payment_type: invoice
+        processing_at: null
+        recurring_options:
+          forward_payment_enabled: true
+          recurring_end_type: never
+          reminder_schedule: weekly
+          repeat_frequency: 1
+          repeat_on_day: 15
+          repeat_on_type: day_of_month
+          repeat_unit: month
+          schedule: custom
+        recurring_sequence: 1
+        reminder_scheduled_at: '2025-01-22T09:00:00Z'
+        reviewed_at: '2025-01-10T14:30:00Z'
+        sales_tax_percentage: null
+        scheduled_at: '2025-01-15T09:00:00Z'
+        sent_at: '2025-01-15T09:00:05Z'
+        status: sent
+        subscription_url: https://secure.agree.com/subscriptions?modal=subscription-details&subscriptionId=70f2e8c2-0bc2-4f4f-8f9a-adab66f0320a
+        used_payment_method: null
+      properties:
+        agreement_id:
+          description: Associated agreement ID
+          format: uuid
+          type:
+          - string
+          - 'null'
+        due_at:
+          description: Payment due date
+          format: date-time
+          type:
+          - string
+          - 'null'
+        inserted_at:
+          description: When the invoice was created
+          format: date-time
+          type: string
+        sales_tax_percentage:
+          description: Sales tax percentage
+          type:
+          - number
+          - 'null'
+        delivery_method:
+          description: How the invoice is delivered
+          example: email
+          type: string
+        customer:
+          allOf:
+          - $ref: '#/components/schemas/Customer'
+          description: Expanded customer (business entity) billed by this invoice, including its primary contact (the recipient). Nil for legacy invoices.
+        subscription_url:
+          description: 'URL to navigate to the subscription in the Agree web app.
+
+            Only present when the invoice is part of a recurring subscription (has a recurring schedule).
+
+            Format: {base_url}/subscriptions?modal=subscription-details&subscriptionId={invoice_template_id}
+
+            Examples:
+
+            - https://secure.agree.com/subscriptions?modal=subscription-details&subscriptionId={invoice_template_id}
+
+            '
+          format: uri
+          type:
+          - string
+          - 'null'
+        scheduled_at:
+          description: When invoice is scheduled to be sent
+          format: date-time
+          type:
+          - string
+          - 'null'
+        customer_id:
+          description: ID of the customer (business entity) billed by this invoice. Nil for legacy invoices created before the customer entity.
+          format: uuid
+          type:
+          - string
+          - 'null'
+        payment_type:
+          description: Type of payment
+          enum:
+          - invoice
+          - payment
+          - subscription
+          type: string
+        paid_at:
+          description: When payment was completed
+          format: date-time
+          type:
+          - string
+          - 'null'
+        payment_methods:
+          description: Accepted payment methods
+          items:
+            enum:
+            - ach
+            - card
+            - wire
+            type: string
+          type: array
+        automatic_delivery:
+          description: Whether invoice is sent automatically
+          type: boolean
+        recurring_options:
+          allOf:
+          - $ref: '#/components/schemas/RecurringOptions'
+          description: Recurring options for this invoice. Nil if invoice has no recurring schedule.
+        reviewed_at:
+          description: When the invoice was reviewed/approved. Invoices with `reviewed_at = null` are hidden from default lists and skipped by the scheduler.
+          format: date-time
+          type:
+          - string
+          - 'null'
+        status:
+          description: Current invoice status
+          enum:
+          - created
+          - due
+          - sent
+          - canceled
+          - paid
+          - failed
+          - refunded
+          - draft
+          type: string
+        sent_at:
+          description: When invoice was sent
+          format: date-time
+          type:
+          - string
+          - 'null'
+        payment_link:
+          description: URL for the payment page. Only available when invoice has a payment token.
+          format: uri
+          type:
+          - string
+          - 'null'
+        name:
+          description: Invoice name
+          type:
+          - string
+          - 'null'
+        id:
+          description: Unique invoice identifier
+          format: uuid
+          type: string
+        billing_contact:
+          allOf:
+          - $ref: '#/components/schemas/BillingContact'
+          description: Billing contact information for this invoice
+        destination_organization_id:
+          description: Destination organization ID
+          format: uuid
+          type:
+          - string
+          - 'null'
+        processing_at:
+          description: When processing started
+          format: date-time
+          type:
+          - string
+          - 'null'
+        used_payment_method:
+          description: Payment method used for payment
+          type:
+          - string
+          - 'null'
+        external_id:
+          description: External invoice reference
+          type:
+          - string
+          - 'null'
+        invoice_url:
+          description: 'URL to navigate to the invoice in the Agree web app.
+
+            Format: {base_url}/invoices?modal=invoice-details&invoiceId={invoice_id}
+
+            Examples:
+
+            - https://secure.agree.com/invoices?modal=invoice-details&invoiceId={invoice_id}
+
+            '
+          format: uri
+          type:
+          - string
+          - 'null'
+        external_customer_id:
+          description: External customer reference
+          type:
+          - string
+          - 'null'
+        last_reminder_sent_at:
+          description: When last reminder was sent
+          format: date-time
+          type:
+          - string
+          - 'null'
+        memo:
+          description: Invoice memo or notes
+          maxLength: 255
+          type:
+          - string
+          - 'null'
+        recurring_sequence:
+          description: Sequence number for recurring invoices
+          type: integer
+        amount:
+          $ref: '#/components/schemas/Money'
+        reminder_scheduled_at:
+          description: When next reminder is scheduled
+          format: date-time
+          type:
+          - string
+          - 'null'
+        organization_id:
+          description: Organization that owns this invoice
+          format: uuid
+          type: string
+        authorized_at:
+          description: When payment was authorized
+          format: date-time
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - amount
+      - status
+      - organization_id
+      title: Invoice
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http
