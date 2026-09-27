@@ -191,7 +191,7 @@ paths:
     patch:
       callbacks: {}
       description: Updates an existing contact.
-      operationId: AgreeWeb.API.V1.ContactController.update (2)
+      operationId: AgreeWeb.API.V1.ContactController.update(2)
       parameters:
       - description: Contact ID (UUID)
         in: path
@@ -242,6 +242,8 @@ paths:
       summary: Update contact
       tags:
       - Contacts
+      x-operation-id-source: normalized
+      x-operation-id-original: AgreeWeb.API.V1.ContactController.update (2)
     put:
       callbacks: {}
       description: Updates an existing contact.
@@ -298,35 +300,15 @@ paths:
       - Contacts
 components:
   schemas:
-    Forbidden:
-      description: Access denied to the requested resource
+    NotFound:
+      description: Resource not found error
       example:
-        error: You do not have access to this resource
+        error: Not found
       properties:
         error:
           description: Error message
           type: string
-      title: Forbidden
-      type: object
-    BadRequest:
-      description: Invalid request parameters
-      example:
-        error: Invalid page or page_size
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: BadRequest
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
+      title: NotFound
       type: object
     ContactResponse:
       description: Response containing a single contact
@@ -336,58 +318,6 @@ components:
       required:
       - data
       title: ContactResponse
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
-      type: object
-    ContactsResponse:
-      description: Response containing a list of contacts
-      properties:
-        data:
-          description: List of contacts
-          items:
-            $ref: '#/components/schemas/Contact'
-          type: array
-        pagination:
-          description: Pagination information
-          properties:
-            page:
-              description: Current page number
-              type: integer
-            page_size:
-              description: Number of items per page
-              type: integer
-            total_entries:
-              description: Total number of contacts
-              type: integer
-            total_pages:
-              description: Total number of pages
-              type: integer
-          required:
-          - page
-          - page_size
-          - total_pages
-          - total_entries
-          type: object
-      required:
-      - data
-      - pagination
-      title: ContactsResponse
       type: object
     ContactParams:
       description: Parameters for creating or updating a contact
@@ -429,6 +359,88 @@ components:
       required:
       - contact
       title: ContactParams
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    ContactsResponse:
+      description: Response containing a list of contacts
+      properties:
+        data:
+          description: List of contacts
+          items:
+            $ref: '#/components/schemas/Contact'
+          type: array
+        pagination:
+          description: Pagination information
+          properties:
+            page:
+              description: Current page number
+              type: integer
+            page_size:
+              description: Number of items per page
+              type: integer
+            total_entries:
+              description: Total number of contacts
+              type: integer
+            total_pages:
+              description: Total number of pages
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: ContactsResponse
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
       type: object
     Contact:
       description: A contact in the organization's address book
@@ -487,16 +499,6 @@ components:
       - email
       - organization_id
       title: Contact
-      type: object
-    NotFound:
-      description: Resource not found error
-      example:
-        error: Not found
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
       type: object
   securitySchemes:
     bearer:

@@ -480,7 +480,7 @@ paths:
     patch:
       callbacks: {}
       description: Updates an existing invoice.
-      operationId: AgreeWeb.API.V1.InvoiceController.update (2)
+      operationId: AgreeWeb.API.V1.InvoiceController.update(2)
       parameters:
       - description: Invoice ID (UUID)
         in: path
@@ -531,6 +531,8 @@ paths:
       summary: Update invoice
       tags:
       - Invoices
+      x-operation-id-source: normalized
+      x-operation-id-original: AgreeWeb.API.V1.InvoiceController.update (2)
     put:
       callbacks: {}
       description: Updates an existing invoice.
@@ -691,6 +693,45 @@ paths:
       - Invoices
 components:
   schemas:
+    PresignedDownloadResponse:
+      description: Time-limited URL to download a PDF from object storage
+      properties:
+        data:
+          properties:
+            expires_in:
+              description: URL lifetime in seconds
+              type: integer
+            url:
+              description: Presigned GET URL; expires after expires_in seconds
+              format: uri
+              type: string
+          required:
+          - url
+          - expires_in
+          type: object
+      required:
+      - data
+      title: PresignedDownloadResponse
+      type: object
+    InvoiceResponse:
+      description: Response containing a single invoice
+      properties:
+        data:
+          $ref: '#/components/schemas/Invoice'
+      required:
+      - data
+      title: InvoiceResponse
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
     Forbidden:
       description: Access denied to the requested resource
       example:
@@ -700,6 +741,107 @@ components:
           description: Error message
           type: string
       title: Forbidden
+      type: object
+    Money:
+      description: 'Monetary amount with currency.
+
+
+        IMPORTANT: `amount` is always an INTEGER in the smallest currency unit — cents for USD, EUR, GBP, etc. Never pass dollars. $1.00 is `100`, $15.00 is `1500`, $150.00 is `15000`. To convert a dollar amount to cents, multiply by 100 and round to the nearest integer.
+
+        '
+      example:
+        amount: 15000
+        currency: USD
+      properties:
+        amount:
+          description: Integer amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars.
+          type: integer
+        currency:
+          description: ISO 4217 currency code
+          example: USD
+          type: string
+      required:
+      - amount
+      - currency
+      title: Money
+      type: object
+    Customer:
+      description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
+      example:
+        business_type: company
+        id: 8d1e3859-aef8-4234-97b5-3d4b89b8157c
+        name: Acme Corp
+        primary_contact:
+          email: john@acme.com
+          name: John Doe
+      properties:
+        business_type:
+          description: Customer business type
+          enum:
+          - company
+          - individual
+          - non_profit
+          - government_entity
+          type: string
+        id:
+          description: Customer identifier
+          format: uuid
+          type: string
+        name:
+          description: Customer (company) name
+          type: string
+        primary_contact:
+          description: The customer's primary contact (the invoice recipient).
+          properties:
+            email:
+              description: Primary contact email
+              format: email
+              type:
+              - string
+              - 'null'
+            name:
+              description: Primary contact name
+              type:
+              - string
+              - 'null'
+          type:
+          - object
+          - 'null'
+      required:
+      - id
+      - name
+      title: Customer
+      type: object
+    BillingContact:
+      description: Billing contact information. Creates or updates a contact.
+      example:
+        company: Acme Corp
+        email: customer@example.com
+        name: John Doe
+        title: Software Engineer
+      properties:
+        company:
+          description: Company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Contact email address (required). Creates or gets a contact with this email.
+          format: email
+          type: string
+        name:
+          description: Contact name
+          type:
+          - string
+          - 'null'
+        title:
+          description: Job title
+          type:
+          - string
+          - 'null'
+      required:
+      - email
+      title: BillingContact
       type: object
     RecurringOptions:
       description: 'Recurring invoice options. Configures how the invoice repeats over time.
@@ -803,329 +945,6 @@ components:
           type: string
       title: RecurringOptions
       type: object
-    InvoicePdfPendingResponse:
-      description: PDF generation is in progress; use Retry-After and retry the same URL
-      properties:
-        data:
-          properties:
-            message:
-              type: string
-            retry_after_seconds:
-              description: Same value as the Retry-After response header (seconds)
-              type: integer
-            status:
-              enum:
-              - pending
-              type: string
-          required:
-          - status
-          - retry_after_seconds
-          - message
-          type: object
-      required:
-      - data
-      title: InvoicePdfPendingResponse
-      type: object
-    Customer:
-      description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
-      example:
-        business_type: company
-        id: 8d1e3859-aef8-4234-97b5-3d4b89b8157c
-        name: Acme Corp
-        primary_contact:
-          email: john@acme.com
-          name: John Doe
-      properties:
-        business_type:
-          description: Customer business type
-          enum:
-          - company
-          - individual
-          - non_profit
-          - government_entity
-          type: string
-        id:
-          description: Customer identifier
-          format: uuid
-          type: string
-        name:
-          description: Customer (company) name
-          type: string
-        primary_contact:
-          description: The customer's primary contact (the invoice recipient).
-          properties:
-            email:
-              description: Primary contact email
-              format: email
-              type:
-              - string
-              - 'null'
-            name:
-              description: Primary contact name
-              type:
-              - string
-              - 'null'
-          type:
-          - object
-          - 'null'
-      required:
-      - id
-      - name
-      title: Customer
-      type: object
-    InvoiceParams:
-      description: 'Parameters for creating or updating an invoice.
-
-
-        On **create**, the organization comes from the API key and an **invoice template** is created automatically from `recurring_options` (or defaults). Do not send `organization_id` or `invoice_template_id`; they are not API inputs.
-
-        '
-      example:
-        invoice:
-          amount:
-            amount: 15000
-            currency: USD
-          billing_contact:
-            company: Acme Corporation
-            email: jane@acme.com
-            name: Jane Smith
-          due_at: '2025-02-15T00:00:00Z'
-          memo: Consulting services - January 2025
-          payment_methods:
-          - card
-          - ach
-          recurring_options:
-            recurring_end_type: never
-            repeat_frequency: 1
-            repeat_unit: month
-            schedule: custom
-          scheduled_at: '2025-02-01T00:00:00Z'
-      properties:
-        invoice:
-          properties:
-            agreement_id:
-              description: Associated agreement
-              format: uuid
-              type:
-              - string
-              - 'null'
-            amount:
-              allOf:
-              - $ref: '#/components/schemas/Money'
-              description: 'Invoice amount. Required when creating an invoice.
-
-
-                `amount.amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. A $150 invoice is `{"amount": 15000, "currency": "USD"}`. If a user says "create a $50 invoice", send `5000`, not `50`.
-
-                '
-            automatic_delivery:
-              description: Send invoice automatically
-              type: boolean
-            billing_contact:
-              allOf:
-              - $ref: '#/components/schemas/BillingContact'
-              description: 'Billing contact information. Creates or updates a contact.
-
-                Cannot be used together with contact_id.
-
-                '
-            contact_id:
-              description: 'ID of an existing contact to use for this invoice.
-
-                Cannot be used together with billing_contact.
-
-                '
-              format: uuid
-              type:
-              - string
-              - 'null'
-            customer_id:
-              description: 'ID of an existing customer (business entity) to bill. The invoice recipient is the customer''s primary contact. Requires the `customers` feature to be enabled for the organization (403 otherwise) — discover ids via the customers endpoints. Cannot be used together with billing_contact or contact_id. Create-only: ignored on update.
-
-                '
-              format: uuid
-              type:
-              - string
-              - 'null'
-            delivery_method:
-              description: Delivery method (e.g., email)
-              type: string
-            due_at:
-              description: 'Payment due date (ISO8601 format, UTC).
-
-                Required when using the `create` endpoint. Optional for `create_and_send` (defaults to current UTC time if not provided).
-
-                '
-              format: date-time
-              type:
-              - string
-              - 'null'
-            line_items:
-              description: Invoice line items
-              items:
-                properties:
-                  description:
-                    description: Line item description
-                    type: string
-                  quantity:
-                    description: Quantity
-                    type: number
-                  unit_price:
-                    description: Per-unit price. `amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. $25.00 = 2500.
-                    properties:
-                      amount:
-                        description: Integer price in the smallest currency unit (cents for USD). $25.00 = 2500, $1.00 = 100. Do NOT pass dollars.
-                        type: integer
-                      currency:
-                        description: ISO 4217 currency code
-                        example: USD
-                        type: string
-                    type: object
-                type: object
-              type: array
-            memo:
-              description: Invoice memo
-              maxLength: 255
-              type:
-              - string
-              - 'null'
-            payment_methods:
-              description: Accepted payment methods
-              items:
-                enum:
-                - ach
-                - card
-                - wire
-                type: string
-              type: array
-            payment_type:
-              description: Type of payment
-              enum:
-              - invoice
-              - payment
-              - subscription
-              type: string
-            recurring_options:
-              allOf:
-              - $ref: '#/components/schemas/RecurringOptions'
-              description: 'Recurring options for the invoice. Configures how the invoice repeats over time.
-
-                If not provided, the invoice will have no recurring schedule (schedule: "none").
-
-                '
-            reviewed_at:
-              description: 'When the invoice was reviewed/approved (ISO8601 format, UTC).
-
-                Optional on create — defaults to the time of the API request. Invoices created via the API are
-
-                treated as already reviewed by the calling system, so they appear in default lists and are
-
-                eligible for the scheduler immediately. Pass an explicit value to record an earlier review time,
-
-                or omit to accept the current-time default.
-
-                '
-              format: date-time
-              type:
-              - string
-              - 'null'
-            sales_tax_percentage:
-              description: Sales tax percentage
-              type:
-              - number
-              - 'null'
-            scheduled_at:
-              description: 'When to send the invoice (ISO8601 format, UTC).
-
-                Required when using the `create` endpoint. For `create_and_send`, this is always set to the current UTC time regardless of the value provided.
-
-                '
-              format: date-time
-              type:
-              - string
-              - 'null'
-          type: object
-      required:
-      - invoice
-      title: InvoiceParams
-      type: object
-    BadRequest:
-      description: Invalid request parameters
-      example:
-        error: Invalid page or page_size
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: BadRequest
-      type: object
-    InvoicesResponse:
-      description: Response containing a list of invoices
-      properties:
-        data:
-          description: List of invoices
-          items:
-            $ref: '#/components/schemas/Invoice'
-          type: array
-        pagination:
-          description: Pagination information
-          properties:
-            page:
-              description: Current page number
-              type: integer
-            page_size:
-              description: Number of items per page
-              type: integer
-            total_entries:
-              description: Total number of invoices
-              type: integer
-            total_pages:
-              description: Total number of pages
-              type: integer
-          required:
-          - page
-          - page_size
-          - total_pages
-          - total_entries
-          type: object
-      required:
-      - data
-      - pagination
-      title: InvoicesResponse
-      type: object
-    Money:
-      description: 'Monetary amount with currency.
-
-
-        IMPORTANT: `amount` is always an INTEGER in the smallest currency unit — cents for USD, EUR, GBP, etc. Never pass dollars. $1.00 is `100`, $15.00 is `1500`, $150.00 is `15000`. To convert a dollar amount to cents, multiply by 100 and round to the nearest integer.
-
-        '
-      example:
-        amount: 15000
-        currency: USD
-      properties:
-        amount:
-          description: Integer amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars.
-          type: integer
-        currency:
-          description: ISO 4217 currency code
-          example: USD
-          type: string
-      required:
-      - amount
-      - currency
-      title: Money
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
     Error:
       description: Error response with field-specific error messages
       example:
@@ -1144,65 +963,25 @@ components:
           type: object
       title: Error
       type: object
-    BillingContact:
-      description: Billing contact information. Creates or updates a contact.
+    Unauthorized:
+      description: Authentication required or invalid credentials
       example:
-        company: Acme Corp
-        email: customer@example.com
-        name: John Doe
-        title: Software Engineer
+        error: Invalid or missing API key
       properties:
-        company:
-          description: Company name
-          type:
-          - string
-          - 'null'
-        email:
-          description: Contact email address (required). Creates or gets a contact with this email.
-          format: email
+        error:
+          description: Error message
           type: string
-        name:
-          description: Contact name
-          type:
-          - string
-          - 'null'
-        title:
-          description: Job title
-          type:
-          - string
-          - 'null'
-      required:
-      - email
-      title: BillingContact
+      title: Unauthorized
       type: object
-    InvoiceResponse:
-      description: Response containing a single invoice
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
       properties:
-        data:
-          $ref: '#/components/schemas/Invoice'
-      required:
-      - data
-      title: InvoiceResponse
-      type: object
-    PresignedDownloadResponse:
-      description: Time-limited URL to download a PDF from object storage
-      properties:
-        data:
-          properties:
-            expires_in:
-              description: URL lifetime in seconds
-              type: integer
-            url:
-              description: Presigned GET URL; expires after expires_in seconds
-              format: uri
-              type: string
-          required:
-          - url
-          - expires_in
-          type: object
-      required:
-      - data
-      title: PresignedDownloadResponse
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
       type: object
     Invoice:
       additionalProperties: false
@@ -1467,15 +1246,238 @@ components:
       - organization_id
       title: Invoice
       type: object
-    NotFound:
-      description: Resource not found error
+    InvoiceParams:
+      description: 'Parameters for creating or updating an invoice.
+
+
+        On **create**, the organization comes from the API key and an **invoice template** is created automatically from `recurring_options` (or defaults). Do not send `organization_id` or `invoice_template_id`; they are not API inputs.
+
+        '
       example:
-        error: Not found
+        invoice:
+          amount:
+            amount: 15000
+            currency: USD
+          billing_contact:
+            company: Acme Corporation
+            email: jane@acme.com
+            name: Jane Smith
+          due_at: '2025-02-15T00:00:00Z'
+          memo: Consulting services - January 2025
+          payment_methods:
+          - card
+          - ach
+          recurring_options:
+            recurring_end_type: never
+            repeat_frequency: 1
+            repeat_unit: month
+            schedule: custom
+          scheduled_at: '2025-02-01T00:00:00Z'
       properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
+        invoice:
+          properties:
+            agreement_id:
+              description: Associated agreement
+              format: uuid
+              type:
+              - string
+              - 'null'
+            amount:
+              allOf:
+              - $ref: '#/components/schemas/Money'
+              description: 'Invoice amount. Required when creating an invoice.
+
+
+                `amount.amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. A $150 invoice is `{"amount": 15000, "currency": "USD"}`. If a user says "create a $50 invoice", send `5000`, not `50`.
+
+                '
+            automatic_delivery:
+              description: Send invoice automatically
+              type: boolean
+            billing_contact:
+              allOf:
+              - $ref: '#/components/schemas/BillingContact'
+              description: 'Billing contact information. Creates or updates a contact.
+
+                Cannot be used together with contact_id.
+
+                '
+            contact_id:
+              description: 'ID of an existing contact to use for this invoice.
+
+                Cannot be used together with billing_contact.
+
+                '
+              format: uuid
+              type:
+              - string
+              - 'null'
+            customer_id:
+              description: 'ID of an existing customer (business entity) to bill. The invoice recipient is the customer''s primary contact. Requires the `customers` feature to be enabled for the organization (403 otherwise) — discover ids via the customers endpoints. Cannot be used together with billing_contact or contact_id. Create-only: ignored on update.
+
+                '
+              format: uuid
+              type:
+              - string
+              - 'null'
+            delivery_method:
+              description: Delivery method (e.g., email)
+              type: string
+            due_at:
+              description: 'Payment due date (ISO8601 format, UTC).
+
+                Required when using the `create` endpoint. Optional for `create_and_send` (defaults to current UTC time if not provided).
+
+                '
+              format: date-time
+              type:
+              - string
+              - 'null'
+            line_items:
+              description: Invoice line items
+              items:
+                properties:
+                  description:
+                    description: Line item description
+                    type: string
+                  quantity:
+                    description: Quantity
+                    type: number
+                  unit_price:
+                    description: Per-unit price. `amount` is an INTEGER in the smallest currency unit (cents for USD), not dollars. $25.00 = 2500.
+                    properties:
+                      amount:
+                        description: Integer price in the smallest currency unit (cents for USD). $25.00 = 2500, $1.00 = 100. Do NOT pass dollars.
+                        type: integer
+                      currency:
+                        description: ISO 4217 currency code
+                        example: USD
+                        type: string
+                    type: object
+                type: object
+              type: array
+            memo:
+              description: Invoice memo
+              maxLength: 255
+              type:
+              - string
+              - 'null'
+            payment_methods:
+              description: Accepted payment methods
+              items:
+                enum:
+                - ach
+                - card
+                - wire
+                type: string
+              type: array
+            payment_type:
+              description: Type of payment
+              enum:
+              - invoice
+              - payment
+              - subscription
+              type: string
+            recurring_options:
+              allOf:
+              - $ref: '#/components/schemas/RecurringOptions'
+              description: 'Recurring options for the invoice. Configures how the invoice repeats over time.
+
+                If not provided, the invoice will have no recurring schedule (schedule: "none").
+
+                '
+            reviewed_at:
+              description: 'When the invoice was reviewed/approved (ISO8601 format, UTC).
+
+                Optional on create — defaults to the time of the API request. Invoices created via the API are
+
+                treated as already reviewed by the calling system, so they appear in default lists and are
+
+                eligible for the scheduler immediately. Pass an explicit value to record an earlier review time,
+
+                or omit to accept the current-time default.
+
+                '
+              format: date-time
+              type:
+              - string
+              - 'null'
+            sales_tax_percentage:
+              description: Sales tax percentage
+              type:
+              - number
+              - 'null'
+            scheduled_at:
+              description: 'When to send the invoice (ISO8601 format, UTC).
+
+                Required when using the `create` endpoint. For `create_and_send`, this is always set to the current UTC time regardless of the value provided.
+
+                '
+              format: date-time
+              type:
+              - string
+              - 'null'
+          type: object
+      required:
+      - invoice
+      title: InvoiceParams
+      type: object
+    InvoicesResponse:
+      description: Response containing a list of invoices
+      properties:
+        data:
+          description: List of invoices
+          items:
+            $ref: '#/components/schemas/Invoice'
+          type: array
+        pagination:
+          description: Pagination information
+          properties:
+            page:
+              description: Current page number
+              type: integer
+            page_size:
+              description: Number of items per page
+              type: integer
+            total_entries:
+              description: Total number of invoices
+              type: integer
+            total_pages:
+              description: Total number of pages
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: InvoicesResponse
+      type: object
+    InvoicePdfPendingResponse:
+      description: PDF generation is in progress; use Retry-After and retry the same URL
+      properties:
+        data:
+          properties:
+            message:
+              type: string
+            retry_after_seconds:
+              description: Same value as the Retry-After response header (seconds)
+              type: integer
+            status:
+              enum:
+              - pending
+              type: string
+          required:
+          - status
+          - retry_after_seconds
+          - message
+          type: object
+      required:
+      - data
+      title: InvoicePdfPendingResponse
       type: object
   securitySchemes:
     bearer:

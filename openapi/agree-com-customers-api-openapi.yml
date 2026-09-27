@@ -58,7 +58,7 @@ paths:
     patch:
       callbacks: {}
       description: Updates a customer's name/business_type/address and/or promotes a contact to primary via `primary_contact_id`. Billing identity is stable across primary-contact changes. Requires the `customers` feature for the organization (403 otherwise).
-      operationId: AgreeWeb.API.V1.CustomerController.update (2)
+      operationId: AgreeWeb.API.V1.CustomerController.update(2)
       parameters:
       - description: Customer ID (UUID)
         in: path
@@ -115,6 +115,8 @@ paths:
       summary: Update customer
       tags:
       - Customers
+      x-operation-id-source: normalized
+      x-operation-id-original: AgreeWeb.API.V1.CustomerController.update (2)
     put:
       callbacks: {}
       description: Updates a customer's name/business_type/address and/or promotes a contact to primary via `primary_contact_id`. Billing identity is stable across primary-contact changes. Requires the `customers` feature for the organization (403 otherwise).
@@ -279,6 +281,24 @@ paths:
       - Customers
 components:
   schemas:
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+    CustomerResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/Customer'
+      required:
+      - data
+      title: CustomerResponse
+      type: object
     Forbidden:
       description: Access denied to the requested resource
       example:
@@ -336,34 +356,6 @@ components:
       - name
       title: Customer
       type: object
-    CustomerResponse:
-      properties:
-        data:
-          $ref: '#/components/schemas/Customer'
-      required:
-      - data
-      title: CustomerResponse
-      type: object
-    BadRequest:
-      description: Invalid request parameters
-      example:
-        error: Invalid page or page_size
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: BadRequest
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
     Error:
       description: Error response with field-specific error messages
       example:
@@ -382,32 +374,25 @@ components:
           type: object
       title: Error
       type: object
-    CustomersResponse:
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
       properties:
-        data:
-          items:
-            $ref: '#/components/schemas/Customer'
-          type: array
-        pagination:
-          properties:
-            page:
-              type: integer
-            page_size:
-              type: integer
-            total_entries:
-              type: integer
-            total_pages:
-              type: integer
-          required:
-          - page
-          - page_size
-          - total_pages
-          - total_entries
-          type: object
-      required:
-      - data
-      - pagination
-      title: CustomersResponse
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
       type: object
     CustomerParams:
       description: 'Parameters for creating or updating a customer.
@@ -472,15 +457,32 @@ components:
       - customer
       title: CustomerParams
       type: object
-    NotFound:
-      description: Resource not found error
-      example:
-        error: Not found
+    CustomersResponse:
       properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
+        data:
+          items:
+            $ref: '#/components/schemas/Customer'
+          type: array
+        pagination:
+          properties:
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total_entries:
+              type: integer
+            total_pages:
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: CustomersResponse
       type: object
   securitySchemes:
     bearer:
