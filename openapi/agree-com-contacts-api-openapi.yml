@@ -300,6 +300,16 @@ paths:
       - Contacts
 components:
   schemas:
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
     NotFound:
       description: Resource not found error
       example:
@@ -319,56 +329,33 @@ components:
       - data
       title: ContactResponse
       type: object
-    ContactParams:
-      description: Parameters for creating or updating a contact
+    Error:
+      description: Error response with field-specific error messages
       example:
-        contact:
-          company: Acme Inc
-          email: john.doe@example.com
-          name: John Doe
-          title: CEO
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
       properties:
-        contact:
-          properties:
-            address:
-              description: Contact's mailing address
-              type:
-              - string
-              - 'null'
-            company:
-              description: Contact's company name
-              type:
-              - string
-              - 'null'
-            email:
-              description: Contact's email address
-              format: email
+        errors:
+          additionalProperties:
+            items:
               type: string
-            name:
-              description: Contact's full name
-              type: string
-            title:
-              description: Contact's job title
-              type:
-              - string
-              - 'null'
-          required:
-          - name
-          - email
+            type: array
+          description: Map of field names to arrays of error messages
           type: object
-      required:
-      - contact
-      title: ContactParams
+      title: Error
       type: object
-    Forbidden:
-      description: Access denied to the requested resource
+    Unauthorized:
+      description: Authentication required or invalid credentials
       example:
-        error: You do not have access to this resource
+        error: Invalid or missing API key
       properties:
         error:
           description: Error message
           type: string
-      title: Forbidden
+      title: Unauthorized
       type: object
     ContactsResponse:
       description: Response containing a list of contacts
@@ -403,44 +390,6 @@ components:
       - data
       - pagination
       title: ContactsResponse
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
-    BadRequest:
-      description: Invalid request parameters
-      example:
-        error: Invalid page or page_size
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: BadRequest
       type: object
     Contact:
       description: A contact in the organization's address book
@@ -499,6 +448,57 @@ components:
       - email
       - organization_id
       title: Contact
+      type: object
+    ContactParams:
+      description: Parameters for creating or updating a contact
+      example:
+        contact:
+          company: Acme Inc
+          email: john.doe@example.com
+          name: John Doe
+          title: CEO
+      properties:
+        contact:
+          properties:
+            address:
+              description: Contact's mailing address
+              type:
+              - string
+              - 'null'
+            company:
+              description: Contact's company name
+              type:
+              - string
+              - 'null'
+            email:
+              description: Contact's email address
+              format: email
+              type: string
+            name:
+              description: Contact's full name
+              type: string
+            title:
+              description: Contact's job title
+              type:
+              - string
+              - 'null'
+          required:
+          - name
+          - email
+          type: object
+      required:
+      - contact
+      title: ContactParams
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
       type: object
   securitySchemes:
     bearer:

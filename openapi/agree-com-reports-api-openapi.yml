@@ -378,17 +378,6 @@ paths:
       - Reports
 components:
   schemas:
-    ReportDataResponse:
-      description: Report data payload
-      properties:
-        data:
-          additionalProperties: true
-          description: Report-specific payload
-          type: object
-      required:
-      - data
-      title: ReportDataResponse
-      type: object
     ReportListDataResponse:
       description: Report data payload containing a list
       properties:
@@ -401,6 +390,17 @@ components:
       required:
       - data
       title: ReportListDataResponse
+      type: object
+    ReportDataResponse:
+      description: Report data payload
+      properties:
+        data:
+          additionalProperties: true
+          description: Report-specific payload
+          type: object
+      required:
+      - data
+      title: ReportDataResponse
       type: object
     Unauthorized:
       description: Authentication required or invalid credentials
