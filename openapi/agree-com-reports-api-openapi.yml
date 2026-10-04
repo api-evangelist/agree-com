@@ -391,6 +391,16 @@ components:
       - data
       title: ReportListDataResponse
       type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
     ReportDataResponse:
       description: Report data payload
       properties:
@@ -401,16 +411,6 @@ components:
       required:
       - data
       title: ReportDataResponse
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
       type: object
   securitySchemes:
     bearer:

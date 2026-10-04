@@ -300,6 +300,16 @@ paths:
       - Contacts
 components:
   schemas:
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
     BadRequest:
       description: Invalid request parameters
       example:
@@ -319,77 +329,6 @@ components:
           description: Error message
           type: string
       title: NotFound
-      type: object
-    ContactResponse:
-      description: Response containing a single contact
-      properties:
-        data:
-          $ref: '#/components/schemas/Contact'
-      required:
-      - data
-      title: ContactResponse
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
-    ContactsResponse:
-      description: Response containing a list of contacts
-      properties:
-        data:
-          description: List of contacts
-          items:
-            $ref: '#/components/schemas/Contact'
-          type: array
-        pagination:
-          description: Pagination information
-          properties:
-            page:
-              description: Current page number
-              type: integer
-            page_size:
-              description: Number of items per page
-              type: integer
-            total_entries:
-              description: Total number of contacts
-              type: integer
-            total_pages:
-              description: Total number of pages
-              type: integer
-          required:
-          - page
-          - page_size
-          - total_pages
-          - total_entries
-          type: object
-      required:
-      - data
-      - pagination
-      title: ContactsResponse
       type: object
     Contact:
       description: A contact in the organization's address book
@@ -449,6 +388,77 @@ components:
       - organization_id
       title: Contact
       type: object
+    ContactsResponse:
+      description: Response containing a list of contacts
+      properties:
+        data:
+          description: List of contacts
+          items:
+            $ref: '#/components/schemas/Contact'
+          type: array
+        pagination:
+          description: Pagination information
+          properties:
+            page:
+              description: Current page number
+              type: integer
+            page_size:
+              description: Number of items per page
+              type: integer
+            total_entries:
+              description: Total number of contacts
+              type: integer
+            total_pages:
+              description: Total number of pages
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: ContactsResponse
+      type: object
+    ContactResponse:
+      description: Response containing a single contact
+      properties:
+        data:
+          $ref: '#/components/schemas/Contact'
+      required:
+      - data
+      title: ContactResponse
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
     ContactParams:
       description: Parameters for creating or updating a contact
       example:
@@ -489,16 +499,6 @@ components:
       required:
       - contact
       title: ContactParams
-      type: object
-    Forbidden:
-      description: Access denied to the requested resource
-      example:
-        error: You do not have access to this resource
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Forbidden
       type: object
   securitySchemes:
     bearer:

@@ -301,6 +301,60 @@ paths:
       - Webhooks
 components:
   schemas:
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+    WebhookEndpointsResponse:
+      description: Response containing a list of webhook endpoints
+      properties:
+        data:
+          description: List of webhook endpoints
+          items:
+            $ref: '#/components/schemas/WebhookEndpoint'
+          type: array
+      required:
+      - data
+      title: WebhookEndpointsResponse
+      type: object
+    WebhookEndpointParams:
+      description: Parameters for creating or updating a webhook endpoint
+      example:
+        webhook_endpoint:
+          events:
+          - invoice.created
+          - invoice.paid
+          - invoice.failed
+          url: https://example.com/webhooks
+      properties:
+        webhook_endpoint:
+          properties:
+            active:
+              description: Whether the endpoint should be active
+              type: boolean
+            events:
+              description: List of event types to subscribe to
+              items:
+                type: string
+              type: array
+            url:
+              description: URL where webhook events will be sent
+              format: uri
+              type: string
+          required:
+          - url
+          - events
+          type: object
+      required:
+      - webhook_endpoint
+      title: WebhookEndpointParams
+      type: object
     WebhookEndpoint:
       description: A webhook endpoint configuration
       example:
@@ -384,75 +438,6 @@ components:
       - data
       title: WebhookTestResponse
       type: object
-    WebhookEndpointResponse:
-      description: Response containing a single webhook endpoint
-      properties:
-        data:
-          $ref: '#/components/schemas/WebhookEndpoint'
-      required:
-      - data
-      title: WebhookEndpointResponse
-      type: object
-    WebhookEndpointParams:
-      description: Parameters for creating or updating a webhook endpoint
-      example:
-        webhook_endpoint:
-          events:
-          - invoice.created
-          - invoice.paid
-          - invoice.failed
-          url: https://example.com/webhooks
-      properties:
-        webhook_endpoint:
-          properties:
-            active:
-              description: Whether the endpoint should be active
-              type: boolean
-            events:
-              description: List of event types to subscribe to
-              items:
-                type: string
-              type: array
-            url:
-              description: URL where webhook events will be sent
-              format: uri
-              type: string
-          required:
-          - url
-          - events
-          type: object
-      required:
-      - webhook_endpoint
-      title: WebhookEndpointParams
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
     WebhookEndpointWithSecret:
       description: Webhook endpoint with signing secret (only returned on creation)
       properties:
@@ -494,6 +479,43 @@ components:
       - secret
       title: WebhookEndpointWithSecret
       type: object
+    WebhookEndpointResponse:
+      description: Response containing a single webhook endpoint
+      properties:
+        data:
+          $ref: '#/components/schemas/WebhookEndpoint'
+      required:
+      - data
+      title: WebhookEndpointResponse
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
     WebhookEndpointCreatedResponse:
       description: Response containing a newly created webhook endpoint with signing secret
       properties:
@@ -502,28 +524,6 @@ components:
       required:
       - data
       title: WebhookEndpointCreatedResponse
-      type: object
-    NotFound:
-      description: Resource not found error
-      example:
-        error: Not found
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
-      type: object
-    WebhookEndpointsResponse:
-      description: Response containing a list of webhook endpoints
-      properties:
-        data:
-          description: List of webhook endpoints
-          items:
-            $ref: '#/components/schemas/WebhookEndpoint'
-          type: array
-      required:
-      - data
-      title: WebhookEndpointsResponse
       type: object
   securitySchemes:
     bearer:

@@ -281,6 +281,24 @@ paths:
       - Customers
 components:
   schemas:
+    CustomerResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/Customer'
+      required:
+      - data
+      title: CustomerResponse
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
     BadRequest:
       description: Invalid request parameters
       example:
@@ -290,6 +308,118 @@ components:
           description: Error message
           type: string
       title: BadRequest
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+    CustomersResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Customer'
+          type: array
+        pagination:
+          properties:
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total_entries:
+              type: integer
+            total_pages:
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: CustomersResponse
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    Customer:
+      description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
+      example:
+        business_type: company
+        id: 8d1e3859-aef8-4234-97b5-3d4b89b8157c
+        name: Acme Corp
+        primary_contact:
+          email: john@acme.com
+          name: John Doe
+      properties:
+        business_type:
+          description: Customer business type
+          enum:
+          - company
+          - individual
+          - non_profit
+          - government_entity
+          type: string
+        id:
+          description: Customer identifier
+          format: uuid
+          type: string
+        name:
+          description: Customer (company) name
+          type: string
+        primary_contact:
+          description: The customer's primary contact (the invoice recipient).
+          properties:
+            email:
+              description: Primary contact email
+              format: email
+              type:
+              - string
+              - 'null'
+            name:
+              description: Primary contact name
+              type:
+              - string
+              - 'null'
+          type:
+          - object
+          - 'null'
+      required:
+      - id
+      - name
+      title: Customer
       type: object
     CustomerParams:
       description: 'Parameters for creating or updating a customer.
@@ -353,136 +483,6 @@ components:
       required:
       - customer
       title: CustomerParams
-      type: object
-    CustomerResponse:
-      properties:
-        data:
-          $ref: '#/components/schemas/Customer'
-      required:
-      - data
-      title: CustomerResponse
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
-    CustomersResponse:
-      properties:
-        data:
-          items:
-            $ref: '#/components/schemas/Customer'
-          type: array
-        pagination:
-          properties:
-            page:
-              type: integer
-            page_size:
-              type: integer
-            total_entries:
-              type: integer
-            total_pages:
-              type: integer
-          required:
-          - page
-          - page_size
-          - total_pages
-          - total_entries
-          type: object
-      required:
-      - data
-      - pagination
-      title: CustomersResponse
-      type: object
-    NotFound:
-      description: Resource not found error
-      example:
-        error: Not found
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
-      type: object
-    Customer:
-      description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
-      example:
-        business_type: company
-        id: 8d1e3859-aef8-4234-97b5-3d4b89b8157c
-        name: Acme Corp
-        primary_contact:
-          email: john@acme.com
-          name: John Doe
-      properties:
-        business_type:
-          description: Customer business type
-          enum:
-          - company
-          - individual
-          - non_profit
-          - government_entity
-          type: string
-        id:
-          description: Customer identifier
-          format: uuid
-          type: string
-        name:
-          description: Customer (company) name
-          type: string
-        primary_contact:
-          description: The customer's primary contact (the invoice recipient).
-          properties:
-            email:
-              description: Primary contact email
-              format: email
-              type:
-              - string
-              - 'null'
-            name:
-              description: Primary contact name
-              type:
-              - string
-              - 'null'
-          type:
-          - object
-          - 'null'
-      required:
-      - id
-      - name
-      title: Customer
-      type: object
-    Forbidden:
-      description: Access denied to the requested resource
-      example:
-        error: You do not have access to this resource
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Forbidden
       type: object
   securitySchemes:
     bearer:
