@@ -2663,6 +2663,9 @@ maintainers:
 - FN: APIs.json
   email: info@apis.io
 common:
+- type: CapabilityMap
+  url: capabilities/agree-com-capability-edges.yml
+  name: Agree.com Business Capability Map
 - type: Website
   url: https://agree.com/
 - type: DeveloperPortal
