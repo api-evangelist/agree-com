@@ -378,6 +378,16 @@ paths:
       - Reports
 components:
   schemas:
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
     ReportListDataResponse:
       description: Report data payload containing a list
       properties:
@@ -390,16 +400,6 @@ components:
       required:
       - data
       title: ReportListDataResponse
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
       type: object
     ReportDataResponse:
       description: Report data payload

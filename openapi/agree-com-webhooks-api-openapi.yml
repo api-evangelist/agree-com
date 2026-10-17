@@ -301,16 +301,6 @@ paths:
       - Webhooks
 components:
   schemas:
-    NotFound:
-      description: Resource not found error
-      example:
-        error: Not found
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
-      type: object
     WebhookEndpointsResponse:
       description: Response containing a list of webhook endpoints
       properties:
@@ -322,38 +312,6 @@ components:
       required:
       - data
       title: WebhookEndpointsResponse
-      type: object
-    WebhookEndpointParams:
-      description: Parameters for creating or updating a webhook endpoint
-      example:
-        webhook_endpoint:
-          events:
-          - invoice.created
-          - invoice.paid
-          - invoice.failed
-          url: https://example.com/webhooks
-      properties:
-        webhook_endpoint:
-          properties:
-            active:
-              description: Whether the endpoint should be active
-              type: boolean
-            events:
-              description: List of event types to subscribe to
-              items:
-                type: string
-              type: array
-            url:
-              description: URL where webhook events will be sent
-              format: uri
-              type: string
-          required:
-          - url
-          - events
-          type: object
-      required:
-      - webhook_endpoint
-      title: WebhookEndpointParams
       type: object
     WebhookEndpoint:
       description: A webhook endpoint configuration
@@ -402,41 +360,33 @@ components:
       - active
       title: WebhookEndpoint
       type: object
-    WebhookTestResponse:
-      description: Response after triggering test webhooks
+    NotFound:
+      description: Resource not found error
       example:
-        data:
-          failed: 0
-          job_ids:
-          - 123
-          - 124
-          message: Test webhooks have been queued and will be sent shortly
-          successful: 2
-          total: 2
+        error: Not found
       properties:
-        data:
-          properties:
-            failed:
-              description: Number of failed queue attempts
-              type: integer
-            job_ids:
-              description: IDs of queued webhook delivery jobs
-              items:
-                type: integer
-              type: array
-            message:
-              description: Status message
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
               type: string
-            successful:
-              description: Number of successfully queued webhooks
-              type: integer
-            total:
-              description: Total number of endpoints that received test
-              type: integer
+            type: array
+          description: Map of field names to arrays of error messages
           type: object
-      required:
-      - data
-      title: WebhookTestResponse
+      title: Error
       type: object
     WebhookEndpointWithSecret:
       description: Webhook endpoint with signing secret (only returned on creation)
@@ -498,23 +448,73 @@ components:
           type: string
       title: Unauthorized
       type: object
-    Error:
-      description: Error response with field-specific error messages
+    WebhookEndpointParams:
+      description: Parameters for creating or updating a webhook endpoint
       example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
+        webhook_endpoint:
+          events:
+          - invoice.created
+          - invoice.paid
+          - invoice.failed
+          url: https://example.com/webhooks
       properties:
-        errors:
-          additionalProperties:
-            items:
+        webhook_endpoint:
+          properties:
+            active:
+              description: Whether the endpoint should be active
+              type: boolean
+            events:
+              description: List of event types to subscribe to
+              items:
+                type: string
+              type: array
+            url:
+              description: URL where webhook events will be sent
+              format: uri
               type: string
-            type: array
-          description: Map of field names to arrays of error messages
+          required:
+          - url
+          - events
           type: object
-      title: Error
+      required:
+      - webhook_endpoint
+      title: WebhookEndpointParams
+      type: object
+    WebhookTestResponse:
+      description: Response after triggering test webhooks
+      example:
+        data:
+          failed: 0
+          job_ids:
+          - 123
+          - 124
+          message: Test webhooks have been queued and will be sent shortly
+          successful: 2
+          total: 2
+      properties:
+        data:
+          properties:
+            failed:
+              description: Number of failed queue attempts
+              type: integer
+            job_ids:
+              description: IDs of queued webhook delivery jobs
+              items:
+                type: integer
+              type: array
+            message:
+              description: Status message
+              type: string
+            successful:
+              description: Number of successfully queued webhooks
+              type: integer
+            total:
+              description: Total number of endpoints that received test
+              type: integer
+          type: object
+      required:
+      - data
+      title: WebhookTestResponse
       type: object
     WebhookEndpointCreatedResponse:
       description: Response containing a newly created webhook endpoint with signing secret

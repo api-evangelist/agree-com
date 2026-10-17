@@ -300,26 +300,6 @@ paths:
       - Contacts
 components:
   schemas:
-    Forbidden:
-      description: Access denied to the requested resource
-      example:
-        error: You do not have access to this resource
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Forbidden
-      type: object
-    BadRequest:
-      description: Invalid request parameters
-      example:
-        error: Invalid page or page_size
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: BadRequest
-      type: object
     NotFound:
       description: Resource not found error
       example:
@@ -329,64 +309,6 @@ components:
           description: Error message
           type: string
       title: NotFound
-      type: object
-    Contact:
-      description: A contact in the organization's address book
-      example:
-        address: 123 Main St, New York, NY 10001
-        company: Acme Inc
-        email: john.doe@example.com
-        id: 550e8400-e29b-41d4-a716-446655440000
-        inserted_at: '2024-01-15T10:30:00Z'
-        name: John Doe
-        organization_id: 660e8400-e29b-41d4-a716-446655440000
-        title: CEO
-        updated_at: '2024-01-15T10:30:00Z'
-      properties:
-        address:
-          description: Contact's mailing address
-          type:
-          - string
-          - 'null'
-        company:
-          description: Contact's company name
-          type:
-          - string
-          - 'null'
-        email:
-          description: Contact's email address
-          format: email
-          type: string
-        id:
-          description: Unique contact identifier
-          format: uuid
-          type: string
-        inserted_at:
-          description: When the contact was created
-          format: date-time
-          type: string
-        name:
-          description: Contact's full name
-          type: string
-        organization_id:
-          description: Organization that owns this contact
-          format: uuid
-          type: string
-        title:
-          description: Contact's job title
-          type:
-          - string
-          - 'null'
-        updated_at:
-          description: When the contact was last updated
-          format: date-time
-          type: string
-      required:
-      - id
-      - name
-      - email
-      - organization_id
-      title: Contact
       type: object
     ContactsResponse:
       description: Response containing a list of contacts
@@ -421,25 +343,6 @@ components:
       - data
       - pagination
       title: ContactsResponse
-      type: object
-    ContactResponse:
-      description: Response containing a single contact
-      properties:
-        data:
-          $ref: '#/components/schemas/Contact'
-      required:
-      - data
-      title: ContactResponse
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
       type: object
     Error:
       description: Error response with field-specific error messages
@@ -499,6 +402,103 @@ components:
       required:
       - contact
       title: ContactParams
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    Contact:
+      description: A contact in the organization's address book
+      example:
+        address: 123 Main St, New York, NY 10001
+        company: Acme Inc
+        email: john.doe@example.com
+        id: 550e8400-e29b-41d4-a716-446655440000
+        inserted_at: '2024-01-15T10:30:00Z'
+        name: John Doe
+        organization_id: 660e8400-e29b-41d4-a716-446655440000
+        title: CEO
+        updated_at: '2024-01-15T10:30:00Z'
+      properties:
+        address:
+          description: Contact's mailing address
+          type:
+          - string
+          - 'null'
+        company:
+          description: Contact's company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Contact's email address
+          format: email
+          type: string
+        id:
+          description: Unique contact identifier
+          format: uuid
+          type: string
+        inserted_at:
+          description: When the contact was created
+          format: date-time
+          type: string
+        name:
+          description: Contact's full name
+          type: string
+        organization_id:
+          description: Organization that owns this contact
+          format: uuid
+          type: string
+        title:
+          description: Contact's job title
+          type:
+          - string
+          - 'null'
+        updated_at:
+          description: When the contact was last updated
+          format: date-time
+          type: string
+      required:
+      - id
+      - name
+      - email
+      - organization_id
+      title: Contact
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    ContactResponse:
+      description: Response containing a single contact
+      properties:
+        data:
+          $ref: '#/components/schemas/Contact'
+      required:
+      - data
+      title: ContactResponse
       type: object
   securitySchemes:
     bearer:
