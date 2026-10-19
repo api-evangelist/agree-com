@@ -3,7 +3,198 @@ info:
   description: '# Introduction
 
 
-    Welcome to the Agree API!'
+    Welcome to the Agree API! Agree is a payments and agreements platform that helps businesses send invoices, collect payments, and manage customer relationships. This API lets you integrate Agree''s capabilities directly into your application. ## What You Can Do
+
+
+    With the Agree API, you can:
+
+
+    - **Create and send invoices** to customers with flexible payment options (ACH, credit card, wire transfer)
+
+    - **Manage contacts** in your organization''s address book
+
+    - **Set up recurring invoices** with customizable schedules
+
+    - **Receive real-time notifications** via webhooks when payments are made or invoices change status
+
+    - **Track payment status** and history programmatically
+
+
+    ## Quick Start
+
+
+    Here''s how to send your first invoice in three API calls:
+
+
+    ### 1. Get Your API Key
+
+
+    Generate an API key in your Agree dashboard under **Settings > API Keys**. Keep this key secure - it provides full access to your organization''s data. ### 2. Create a Contact
+
+
+    First, add the customer you want to invoice:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/contacts \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "contact": {
+
+    "name": "Jane Smith",
+
+    "email": "jane@example.com",
+
+    "company": "Acme Corp"
+
+    }
+
+    }''
+
+    ```
+
+
+    ### 3. Create and Send an Invoice
+
+
+    Now create and send an invoice for that contact. You can use the convenience endpoint to do both in one request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "jane@example.com"
+
+    },
+
+    "amount": {"amount": 10000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach"],
+
+    "due_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Consulting services - January 2025"
+
+    }
+
+    }''
+
+    ```
+
+
+    The invoice will be created and immediately sent to the customer via email. They''ll receive a payment link where they can pay using their preferred method. **Alternative:** You can also create the invoice first with `POST /api/v1/invoices`, then send it later with `POST /api/v1/invoices/:id/send` if you need to review or modify it before sending. ### 4. Get Notified When They Pay
+
+
+    Set up a webhook to know when the invoice is paid:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "webhook_endpoint": {
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"]
+
+    }
+
+    }''
+
+    ```
+
+
+    Save the `secret` from the response - you''ll need it to verify webhook signatures. ## How Resources Connect
+
+
+    Understanding how Agree''s resources relate to each other will help you build effective integrations:
+
+
+    ```
+
+    Contacts ──────► Invoices ──────► Webhooks
+
+    │ │ │
+
+    │ │ │
+
+    ▼ ▼ ▼
+
+    People you Payment Real-time
+
+    do business requests notifications
+
+    with you send when things
+
+    to contacts happen
+
+    ```
+
+
+    - **Contacts** are people or companies in your address book. You can create contacts explicitly, or they''re created automatically when you send an invoice to a new email address. - **Invoices** are payment requests sent to contacts. Each invoice has an amount, due date, and accepted payment methods. Invoices progress through a lifecycle from created → sent → paid (or failed/canceled). - **Webhooks** notify your application when invoice events occur. This lets you update your systems in real-time without polling. ## Base URL
+
+
+    All API requests should be made to:
+
+
+    ```
+
+    https://api.agree.com/api/v1
+
+    ```
+
+
+    ## Authentication
+
+
+    All endpoints require Bearer token authentication. Include your API key in the Authorization header:
+
+
+    ```
+
+    Authorization: Bearer YOUR_API_KEY
+
+    ```
+
+
+    Keep your API key secure. If compromised, regenerate it immediately in your dashboard. ## Request Format
+
+
+    Send request bodies as JSON with the `Content-Type: application/json` header. ## Response Format
+
+
+    All successful responses return JSON with a `data` wrapper:
+
+
+    ```json
+
+    {
+
+    "data": { ...'
   title: Agree Invoices API
   version: 1.0.0
 servers:
@@ -11,7 +202,219 @@ servers:
   variables: {}
 security: []
 tags:
-- description: Create, send, and track payment requests to your customers.
+- description: 'Create, send, and track payment requests to your customers. ## Overview
+
+
+    Invoices are the core of Agree''s payment system. An invoice represents a request for payment that you send to a customer. When created, Agree generates a secure payment link that your customer can use to pay via their preferred method. **Key concepts:**
+
+
+    - Invoices are sent to contacts (customers in your address book)
+
+    - Each invoice supports multiple payment methods: ACH bank transfer, credit card, or wire transfer
+
+    - Invoices can be one-time or recurring on a schedule
+
+    - Automatic email delivery sends the payment link to your customer
+
+    - Webhooks notify you in real-time when payment status changes
+
+
+    ## Common Use Cases
+
+
+    ### Bill a Client for a Completed Project
+
+
+    Send a one-time invoice after completing work:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "client@company.com",
+
+    "name": "Sarah Johnson",
+
+    "company": "Johnson & Co"
+
+    },
+
+    "amount": {"amount": 500000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach", "wire"],
+
+    "due_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Website redesign project - Final payment"
+
+    }
+
+    }''
+
+    ```
+
+
+    The client receives an email with a payment link. You''ll get a webhook when they pay. ### Set Up Monthly Retainer Billing
+
+
+    Create a recurring invoice that bills automatically each month:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "accounting@bigcorp.com",
+
+    "name": "Accounts Payable",
+
+    "company": "BigCorp Inc"
+
+    },
+
+    "amount": {"amount": 250000, "currency": "USD"},
+
+    "payment_methods": ["ach"],
+
+    "memo": "Monthly consulting retainer",
+
+    "recurring_options": {
+
+    "schedule": "custom",
+
+    "repeat_frequency": 1,
+
+    "repeat_unit": "month",
+
+    "repeat_on_type": "day_of_month",
+
+    "repeat_on_day": 1,
+
+    "recurring_end_type": "never",
+
+    "reminder_schedule": "weekly"
+
+    }
+
+    }
+
+    }''
+
+    ```
+
+
+    Agree automatically generates and sends invoices on the 1st of each month. ### Track Outstanding Invoices
+
+
+    Find all unpaid invoices that are past due:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=sent,due&date_type=due_at&date_end=2025-01-17" \
+
+    -H "Authorization: Bearer YOUR_API_KEY"
+
+    ```
+
+
+    ### Handle Failed Payments
+
+
+    When a payment fails, you receive an `invoice.failed` webhook. The invoice status changes to `failed`, but the customer can retry payment using the same link. To check failed invoices:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=failed" \
+
+    -H "Authorization: Bearer YOUR_API_KEY"
+
+    ```
+
+
+    ### Generate a Revenue Report
+
+
+    Get all paid invoices for a specific month:
+
+
+    ```bash
+
+    curl "https://api.agree.com/api/v1/invoices?statuses=paid&date_type=paid_at&date_start=2025-01-01&date_end=2025-01-31" \
+
+    -H "Authorization: Bearer YOUR_API_KEY"
+
+    ```
+
+
+    ## Creating an Invoice
+
+
+    Here''s a basic invoice creation:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "customer@example.com",
+
+    "name": "John Doe",
+
+    "company": "Acme Corp"
+
+    },
+
+    "amount": {"amount": 15000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach"],
+
+    "due_at": "2025-02-15T00:00:00Z",
+
+    "scheduled_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Website development - Phase 1"
+
+    }
+
+    }''
+
+    ```
+
+
+    **Note:** When using the `create` endpoint, `due_at` and `scheduled_at` are required fields. The invoice issue date (`inserted_at`) is automatically set when the invoice is created. All dates should be in ISO8601 format (UTC).'
   name: Invoices
 paths:
   /api/v1/invoices/{id}/receipt_pdf:
@@ -177,7 +580,12 @@ paths:
   /api/v1/invoices:
     get:
       callbacks: {}
-      description: Returns a paginated list of invoices for the authenticated organization.
+      description: 'Returns a paginated list of invoices for the authenticated organization.
+
+
+        If the key is tied to a user, only invoices in that user''s teams are
+
+        returned. A workspace-level key returns every team''s invoices.'
       operationId: AgreeWeb.API.V1.InvoiceController.index
       parameters:
       - description: 'Page number (default: 1)'
@@ -204,7 +612,7 @@ paths:
         required: false
         schema:
           type: string
-      - description: 'Date field to filter by. Valid values: paid_at, due_at, scheduled_at (default: scheduled_at)'
+      - description: 'Date field to filter by. Valid values: paid_at, due_at, scheduled_at, sent_at (default: scheduled_at)'
         in: query
         name: date_type
         required: false
@@ -234,7 +642,19 @@ paths:
         required: false
         schema:
           type: number
-      - description: Filter by customer/company name (fuzzy search)
+      - description: Filter by company name (fuzzy search). Matches the linked customer's name or the billing contact's company.
+        in: query
+        name: company
+        required: false
+        schema:
+          type: string
+      - description: Filter by contact name or email (fuzzy search). Matches the billing contact and every contact linked to the invoice's customer.
+        in: query
+        name: contact
+        required: false
+        schema:
+          type: string
+      - description: 'Deprecated: use company or contact. Filter by the billing contact''s company or name (fuzzy search).'
         in: query
         name: customer
         required: false
@@ -693,15 +1113,6 @@ paths:
       - Invoices
 components:
   schemas:
-    InvoiceResponse:
-      description: Response containing a single invoice
-      properties:
-        data:
-          $ref: '#/components/schemas/Invoice'
-      required:
-      - data
-      title: InvoiceResponse
-      type: object
     Customer:
       description: The business entity (customer) billed by an invoice. Routing/billing identity is stable across contact changes; the primary contact is the invoice recipient at issue time.
       example:
@@ -925,28 +1336,25 @@ components:
       - invoice
       title: InvoiceParams
       type: object
-    InvoicePdfPendingResponse:
-      description: PDF generation is in progress; use Retry-After and retry the same URL
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
       properties:
-        data:
-          properties:
-            message:
-              type: string
-            retry_after_seconds:
-              description: Same value as the Retry-After response header (seconds)
-              type: integer
-            status:
-              enum:
-              - pending
-              type: string
-          required:
-          - status
-          - retry_after_seconds
-          - message
-          type: object
-      required:
-      - data
-      title: InvoicePdfPendingResponse
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
       type: object
     InvoicesResponse:
       description: Response containing a list of invoices
@@ -1000,226 +1408,33 @@ components:
           type: object
       title: Error
       type: object
-    NotFound:
-      description: Resource not found error
+    BadRequest:
+      description: Invalid request parameters
       example:
-        error: Not found
+        error: Invalid page or page_size
       properties:
         error:
           description: Error message
           type: string
-      title: NotFound
-      type: object
-    RecurringOptions:
-      description: 'Recurring invoice options. Configures how the invoice repeats over time.
-
-        '
-      example:
-        forward_payment_enabled: true
-        pass_on_fees_enabled: false
-        recurring_end_type: never
-        reminder_schedule: none
-        repeat_frequency: 1
-        repeat_on_day: 15
-        repeat_on_type: day_of_month
-        repeat_unit: month
-        schedule: custom
-      properties:
-        forward_payment_enabled:
-          default: true
-          description: Enable forward payment
-          type: boolean
-        pass_on_fees_enabled:
-          default: false
-          description: Pass processing fees to the payer at checkout
-          type: boolean
-        recurring_end_count:
-          description: Number of occurrences when recurring_end_type is count
-          type:
-          - integer
-          - 'null'
-        recurring_end_date:
-          description: End date when recurring_end_type is date
-          format: date-time
-          type:
-          - string
-          - 'null'
-        recurring_end_type:
-          default: never
-          description: How the recurring invoice ends
-          enum:
-          - never
-          - date
-          - count
-          type: string
-        reminder_schedule:
-          default: none
-          description: Reminder schedule
-          enum:
-          - none
-          - daily
-          - weekly
-          - monthly
-          type: string
-        repeat_frequency:
-          default: 1
-          description: How often to repeat (e.g., 1 for every week/month)
-          type: integer
-        repeat_on_day:
-          description: Day of month (1-31) when repeat_on_type is day_of_month
-          type:
-          - integer
-          - 'null'
-        repeat_on_type:
-          description: 'For monthly: repeat on day of month or day of week'
-          enum:
-          - day_of_month
-          - day_of_week
-          type:
-          - string
-          - 'null'
-        repeat_on_week:
-          description: Week position (1-5, 5=last) when repeat_on_type is day_of_week
-          type:
-          - integer
-          - 'null'
-        repeat_on_weekday:
-          description: Day of week when repeat_unit is week or repeat_on_type is day_of_week
-          enum:
-          - monday
-          - tuesday
-          - wednesday
-          - thursday
-          - friday
-          - saturday
-          - sunday
-          type:
-          - string
-          - 'null'
-        repeat_unit:
-          default: month
-          description: Repeat unit
-          enum:
-          - week
-          - month
-          type: string
-        schedule:
-          default: none
-          description: Schedule type
-          enum:
-          - none
-          - custom
-          type: string
-      title: RecurringOptions
-      type: object
-    Money:
-      description: 'Monetary amount with currency.
-
-
-        IMPORTANT: `amount` is always an INTEGER in the smallest currency unit — cents for USD, EUR, GBP, etc. Never pass dollars. $1.00 is `100`, $15.00 is `1500`, $150.00 is `15000`. To convert a dollar amount to cents, multiply by 100 and round to the nearest integer.
-
-        '
-      example:
-        amount: 15000
-        currency: USD
-      properties:
-        amount:
-          description: Integer amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars.
-          type: integer
-        currency:
-          description: ISO 4217 currency code
-          example: USD
-          type: string
-      required:
-      - amount
-      - currency
-      title: Money
-      type: object
-    Forbidden:
-      description: Access denied to the requested resource
-      example:
-        error: You do not have access to this resource
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Forbidden
-      type: object
-    BillingContact:
-      description: Billing contact information. Creates or updates a contact.
-      example:
-        company: Acme Corp
-        email: customer@example.com
-        name: John Doe
-        title: Software Engineer
-      properties:
-        company:
-          description: Company name
-          type:
-          - string
-          - 'null'
-        email:
-          description: Contact email address (required). Creates or gets a contact with this email.
-          format: email
-          type: string
-        name:
-          description: Contact name
-          type:
-          - string
-          - 'null'
-        title:
-          description: Job title
-          type:
-          - string
-          - 'null'
-      required:
-      - email
-      title: BillingContact
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
+      title: BadRequest
       type: object
     Invoice:
       additionalProperties: false
       description: An invoice for a payment request
       example:
         agreement_id: null
-        amount:
-          amount: 15000
-          currency: USD
-        authorized_at: null
-        automatic_delivery: true
-        billing_contact:
-          company: Acme Corporation
-          email: jane@acme.com
-          name: Jane Smith
-          title: CFO
-        delivery_method: email
-        destination_organization_id: null
         due_at: '2025-02-15T00:00:00Z'
-        external_customer_id: null
-        external_id: null
-        id: 550e8400-e29b-41d4-a716-446655440000
         inserted_at: '2025-01-10T14:30:00Z'
-        invoice_url: https://secure.agree.com/invoices?modal=invoice-details&invoiceId=550e8400-e29b-41d4-a716-446655440000
-        last_reminder_sent_at: null
-        memo: Consulting services - January 2025
-        name: 'Invoice #1042'
-        organization_id: 660e8400-e29b-41d4-a716-446655440000
+        sales_tax_percentage: null
+        delivery_method: email
+        subscription_url: https://secure.agree.com/subscriptions?modal=subscription-details&subscriptionId=70f2e8c2-0bc2-4f4f-8f9a-adab66f0320a
+        scheduled_at: '2025-01-15T09:00:00Z'
+        payment_type: invoice
         paid_at: null
-        payment_link: https://agree.com/pay/abc123token
         payment_methods:
         - card
         - ach
-        payment_type: invoice
-        processing_at: null
+        automatic_delivery: true
         recurring_options:
           forward_payment_enabled: true
           recurring_end_type: never
@@ -1229,15 +1444,33 @@ components:
           repeat_on_type: day_of_month
           repeat_unit: month
           schedule: custom
-        recurring_sequence: 1
-        reminder_scheduled_at: '2025-01-22T09:00:00Z'
         reviewed_at: '2025-01-10T14:30:00Z'
-        sales_tax_percentage: null
-        scheduled_at: '2025-01-15T09:00:00Z'
-        sent_at: '2025-01-15T09:00:05Z'
         status: sent
-        subscription_url: https://secure.agree.com/subscriptions?modal=subscription-details&subscriptionId=70f2e8c2-0bc2-4f4f-8f9a-adab66f0320a
+        sent_at: '2025-01-15T09:00:05Z'
+        payment_link: https://agree.com/pay/abc123token
+        name: 'Invoice #1042'
+        id: 550e8400-e29b-41d4-a716-446655440000
+        billing_contact:
+          company: Acme Corporation
+          email: jane@acme.com
+          name: Jane Smith
+          title: CFO
+        destination_organization_id: null
+        processing_at: null
         used_payment_method: null
+        amount_paid: 0
+        external_id: null
+        invoice_url: https://secure.agree.com/invoices?modal=invoice-details&invoiceId=550e8400-e29b-41d4-a716-446655440000
+        external_customer_id: null
+        last_reminder_sent_at: null
+        memo: Consulting services - January 2025
+        recurring_sequence: 1
+        amount:
+          amount: 15000
+          currency: USD
+        reminder_scheduled_at: '2025-01-22T09:00:00Z'
+        organization_id: 660e8400-e29b-41d4-a716-446655440000
+        authorized_at: null
       properties:
         agreement_id:
           description: Associated agreement ID
@@ -1385,6 +1618,9 @@ components:
           type:
           - string
           - 'null'
+        amount_paid:
+          description: Amount already paid, in the smallest currency unit (cents for USD). Outstanding balance is amount.amount minus amount_paid.
+          type: integer
         external_id:
           description: External invoice reference
           type:
@@ -1449,15 +1685,163 @@ components:
       - organization_id
       title: Invoice
       type: object
-    BadRequest:
-      description: Invalid request parameters
+    InvoicePdfPendingResponse:
+      description: PDF generation is in progress; use Retry-After and retry the same URL
+      properties:
+        data:
+          properties:
+            message:
+              type: string
+            retry_after_seconds:
+              description: Same value as the Retry-After response header (seconds)
+              type: integer
+            status:
+              enum:
+              - pending
+              type: string
+          required:
+          - status
+          - retry_after_seconds
+          - message
+          type: object
+      required:
+      - data
+      title: InvoicePdfPendingResponse
+      type: object
+    Money:
+      description: 'Monetary amount with currency.
+
+
+        IMPORTANT: `amount` is always an INTEGER in the smallest currency unit — cents for USD, EUR, GBP, etc. Never pass dollars. $1.00 is `100`, $15.00 is `1500`, $150.00 is `15000`. To convert a dollar amount to cents, multiply by 100 and round to the nearest integer.
+
+        '
       example:
-        error: Invalid page or page_size
+        amount: 15000
+        currency: USD
+      properties:
+        amount:
+          description: Integer amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars.
+          type: integer
+        currency:
+          description: ISO 4217 currency code
+          example: USD
+          type: string
+      required:
+      - amount
+      - currency
+      title: Money
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
       properties:
         error:
           description: Error message
           type: string
-      title: BadRequest
+      title: Unauthorized
+      type: object
+    RecurringOptions:
+      description: 'Recurring invoice options. Configures how the invoice repeats over time.
+
+        '
+      example:
+        forward_payment_enabled: true
+        pass_on_fees_enabled: false
+        recurring_end_type: never
+        reminder_schedule: none
+        repeat_frequency: 1
+        repeat_on_day: 15
+        repeat_on_type: day_of_month
+        repeat_unit: month
+        schedule: custom
+      properties:
+        forward_payment_enabled:
+          default: true
+          description: Enable forward payment
+          type: boolean
+        pass_on_fees_enabled:
+          default: false
+          description: Pass processing fees to the payer at checkout
+          type: boolean
+        recurring_end_count:
+          description: Number of occurrences when recurring_end_type is count
+          type:
+          - integer
+          - 'null'
+        recurring_end_date:
+          description: End date when recurring_end_type is date
+          format: date-time
+          type:
+          - string
+          - 'null'
+        recurring_end_type:
+          default: never
+          description: How the recurring invoice ends
+          enum:
+          - never
+          - date
+          - count
+          type: string
+        reminder_schedule:
+          default: none
+          description: Reminder schedule
+          enum:
+          - none
+          - daily
+          - weekly
+          - monthly
+          type: string
+        repeat_frequency:
+          default: 1
+          description: How often to repeat (e.g., 1 for every week/month)
+          type: integer
+        repeat_on_day:
+          description: Day of month (1-31) when repeat_on_type is day_of_month
+          type:
+          - integer
+          - 'null'
+        repeat_on_type:
+          description: 'For monthly: repeat on day of month or day of week'
+          enum:
+          - day_of_month
+          - day_of_week
+          type:
+          - string
+          - 'null'
+        repeat_on_week:
+          description: Week position (1-5, 5=last) when repeat_on_type is day_of_week
+          type:
+          - integer
+          - 'null'
+        repeat_on_weekday:
+          description: Day of week when repeat_unit is week or repeat_on_type is day_of_week
+          enum:
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+          - sunday
+          type:
+          - string
+          - 'null'
+        repeat_unit:
+          default: month
+          description: Repeat unit
+          enum:
+          - week
+          - month
+          type: string
+        schedule:
+          default: none
+          description: Schedule type
+          enum:
+          - none
+          - custom
+          type: string
+      title: RecurringOptions
       type: object
     PresignedDownloadResponse:
       description: Time-limited URL to download a PDF from object storage
@@ -1478,6 +1862,46 @@ components:
       required:
       - data
       title: PresignedDownloadResponse
+      type: object
+    InvoiceResponse:
+      description: Response containing a single invoice
+      properties:
+        data:
+          $ref: '#/components/schemas/Invoice'
+      required:
+      - data
+      title: InvoiceResponse
+      type: object
+    BillingContact:
+      description: Billing contact information. Creates or updates a contact.
+      example:
+        company: Acme Corp
+        email: customer@example.com
+        name: John Doe
+        title: Software Engineer
+      properties:
+        company:
+          description: Company name
+          type:
+          - string
+          - 'null'
+        email:
+          description: Contact email address (required). Creates or gets a contact with this email.
+          format: email
+          type: string
+        name:
+          description: Contact name
+          type:
+          - string
+          - 'null'
+        title:
+          description: Job title
+          type:
+          - string
+          - 'null'
+      required:
+      - email
+      title: BillingContact
       type: object
   securitySchemes:
     bearer:

@@ -3,7 +3,198 @@ info:
   description: '# Introduction
 
 
-    Welcome to the Agree API!'
+    Welcome to the Agree API! Agree is a payments and agreements platform that helps businesses send invoices, collect payments, and manage customer relationships. This API lets you integrate Agree''s capabilities directly into your application. ## What You Can Do
+
+
+    With the Agree API, you can:
+
+
+    - **Create and send invoices** to customers with flexible payment options (ACH, credit card, wire transfer)
+
+    - **Manage contacts** in your organization''s address book
+
+    - **Set up recurring invoices** with customizable schedules
+
+    - **Receive real-time notifications** via webhooks when payments are made or invoices change status
+
+    - **Track payment status** and history programmatically
+
+
+    ## Quick Start
+
+
+    Here''s how to send your first invoice in three API calls:
+
+
+    ### 1. Get Your API Key
+
+
+    Generate an API key in your Agree dashboard under **Settings > API Keys**. Keep this key secure - it provides full access to your organization''s data. ### 2. Create a Contact
+
+
+    First, add the customer you want to invoice:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/contacts \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "contact": {
+
+    "name": "Jane Smith",
+
+    "email": "jane@example.com",
+
+    "company": "Acme Corp"
+
+    }
+
+    }''
+
+    ```
+
+
+    ### 3. Create and Send an Invoice
+
+
+    Now create and send an invoice for that contact. You can use the convenience endpoint to do both in one request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "jane@example.com"
+
+    },
+
+    "amount": {"amount": 10000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach"],
+
+    "due_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Consulting services - January 2025"
+
+    }
+
+    }''
+
+    ```
+
+
+    The invoice will be created and immediately sent to the customer via email. They''ll receive a payment link where they can pay using their preferred method. **Alternative:** You can also create the invoice first with `POST /api/v1/invoices`, then send it later with `POST /api/v1/invoices/:id/send` if you need to review or modify it before sending. ### 4. Get Notified When They Pay
+
+
+    Set up a webhook to know when the invoice is paid:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "webhook_endpoint": {
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"]
+
+    }
+
+    }''
+
+    ```
+
+
+    Save the `secret` from the response - you''ll need it to verify webhook signatures. ## How Resources Connect
+
+
+    Understanding how Agree''s resources relate to each other will help you build effective integrations:
+
+
+    ```
+
+    Contacts ──────► Invoices ──────► Webhooks
+
+    │ │ │
+
+    │ │ │
+
+    ▼ ▼ ▼
+
+    People you Payment Real-time
+
+    do business requests notifications
+
+    with you send when things
+
+    to contacts happen
+
+    ```
+
+
+    - **Contacts** are people or companies in your address book. You can create contacts explicitly, or they''re created automatically when you send an invoice to a new email address. - **Invoices** are payment requests sent to contacts. Each invoice has an amount, due date, and accepted payment methods. Invoices progress through a lifecycle from created → sent → paid (or failed/canceled). - **Webhooks** notify your application when invoice events occur. This lets you update your systems in real-time without polling. ## Base URL
+
+
+    All API requests should be made to:
+
+
+    ```
+
+    https://api.agree.com/api/v1
+
+    ```
+
+
+    ## Authentication
+
+
+    All endpoints require Bearer token authentication. Include your API key in the Authorization header:
+
+
+    ```
+
+    Authorization: Bearer YOUR_API_KEY
+
+    ```
+
+
+    Keep your API key secure. If compromised, regenerate it immediately in your dashboard. ## Request Format
+
+
+    Send request bodies as JSON with the `Content-Type: application/json` header. ## Response Format
+
+
+    All successful responses return JSON with a `data` wrapper:
+
+
+    ```json
+
+    {
+
+    "data": { ...'
   title: Agree Reports API
   version: 1.0.0
 servers:
@@ -11,7 +202,70 @@ servers:
   variables: {}
 security: []
 tags:
-- description: Read-only analytics for revenue, cashflow, and accounts receivable recovery.
+- description: 'Read-only analytics for revenue, cashflow, and accounts receivable recovery.
+
+
+    ## Overview
+
+
+    Report endpoints mirror the in-app **Reports** dashboards (`/reports/revenue`, `/reports/cashflow`, `/reports/recovery`). All metrics are scoped to the authenticated API key''s organization.
+
+
+    Amounts use the `Money` object shape: `amount` is in the smallest currency unit (cents for USD) and `currency` is an ISO 4217 code (e.g. `"USD"`).
+
+
+    ## Revenue
+
+
+    | Endpoint | Description |
+
+    |----------|-------------|
+
+    | `GET /reports/revenue/stats` | ARR, MRR, growth, NRR, top-5 concentration |
+
+    | `GET /reports/revenue/chart` | Monthly MRR/ARR history and forecast |
+
+    | `GET /reports/revenue/customers` | Customers ranked by paid revenue |
+
+    | `GET /reports/revenue/customers_by_mrr` | Customers ranked by subscription MRR |
+
+
+    ## Cashflow
+
+
+    | Endpoint | Description |
+
+    |----------|-------------|
+
+    | `GET /reports/cashflow/stats` | Cash collected MTD, outstanding total, DSO, fail rate |
+
+    | `GET /reports/cashflow/chart` | Monthly cash collected history and forecast |
+
+    | `GET /reports/cashflow/outstanding_invoices` | Outstanding invoice list |
+
+    | `GET /reports/cashflow/forecast` | Expected cash in next 30/60/90 days |
+
+
+    ## Recovery
+
+
+    | Endpoint | Description |
+
+    |----------|-------------|
+
+    | `GET /reports/recovery/aging/chart` | Aging buckets by month |
+
+    | `GET /reports/recovery/aging/invoices` | Invoices grouped by aging bucket |
+
+    | `GET /reports/recovery/aging/trend` | Overdue totals and average days overdue |
+
+    | `GET /reports/recovery/leakage/stats` | Counts/amounts by invoice stage |
+
+    | `GET /reports/recovery/leakage/waterfall` | Stage waterfall for leakage analysis |
+
+    | `GET /reports/recovery/leakage/stalled_invoices` | Stalled invoices |
+
+    | `GET /reports/recovery/leakage/stage_durations` | Average days between stages |'
   name: Reports
 paths:
   /api/v1/reports/revenue/stats:

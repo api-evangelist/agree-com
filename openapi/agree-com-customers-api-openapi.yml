@@ -3,7 +3,198 @@ info:
   description: '# Introduction
 
 
-    Welcome to the Agree API!'
+    Welcome to the Agree API! Agree is a payments and agreements platform that helps businesses send invoices, collect payments, and manage customer relationships. This API lets you integrate Agree''s capabilities directly into your application. ## What You Can Do
+
+
+    With the Agree API, you can:
+
+
+    - **Create and send invoices** to customers with flexible payment options (ACH, credit card, wire transfer)
+
+    - **Manage contacts** in your organization''s address book
+
+    - **Set up recurring invoices** with customizable schedules
+
+    - **Receive real-time notifications** via webhooks when payments are made or invoices change status
+
+    - **Track payment status** and history programmatically
+
+
+    ## Quick Start
+
+
+    Here''s how to send your first invoice in three API calls:
+
+
+    ### 1. Get Your API Key
+
+
+    Generate an API key in your Agree dashboard under **Settings > API Keys**. Keep this key secure - it provides full access to your organization''s data. ### 2. Create a Contact
+
+
+    First, add the customer you want to invoice:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/contacts \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "contact": {
+
+    "name": "Jane Smith",
+
+    "email": "jane@example.com",
+
+    "company": "Acme Corp"
+
+    }
+
+    }''
+
+    ```
+
+
+    ### 3. Create and Send an Invoice
+
+
+    Now create and send an invoice for that contact. You can use the convenience endpoint to do both in one request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "jane@example.com"
+
+    },
+
+    "amount": {"amount": 10000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach"],
+
+    "due_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Consulting services - January 2025"
+
+    }
+
+    }''
+
+    ```
+
+
+    The invoice will be created and immediately sent to the customer via email. They''ll receive a payment link where they can pay using their preferred method. **Alternative:** You can also create the invoice first with `POST /api/v1/invoices`, then send it later with `POST /api/v1/invoices/:id/send` if you need to review or modify it before sending. ### 4. Get Notified When They Pay
+
+
+    Set up a webhook to know when the invoice is paid:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "webhook_endpoint": {
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"]
+
+    }
+
+    }''
+
+    ```
+
+
+    Save the `secret` from the response - you''ll need it to verify webhook signatures. ## How Resources Connect
+
+
+    Understanding how Agree''s resources relate to each other will help you build effective integrations:
+
+
+    ```
+
+    Contacts ──────► Invoices ──────► Webhooks
+
+    │ │ │
+
+    │ │ │
+
+    ▼ ▼ ▼
+
+    People you Payment Real-time
+
+    do business requests notifications
+
+    with you send when things
+
+    to contacts happen
+
+    ```
+
+
+    - **Contacts** are people or companies in your address book. You can create contacts explicitly, or they''re created automatically when you send an invoice to a new email address. - **Invoices** are payment requests sent to contacts. Each invoice has an amount, due date, and accepted payment methods. Invoices progress through a lifecycle from created → sent → paid (or failed/canceled). - **Webhooks** notify your application when invoice events occur. This lets you update your systems in real-time without polling. ## Base URL
+
+
+    All API requests should be made to:
+
+
+    ```
+
+    https://api.agree.com/api/v1
+
+    ```
+
+
+    ## Authentication
+
+
+    All endpoints require Bearer token authentication. Include your API key in the Authorization header:
+
+
+    ```
+
+    Authorization: Bearer YOUR_API_KEY
+
+    ```
+
+
+    Keep your API key secure. If compromised, regenerate it immediately in your dashboard. ## Request Format
+
+
+    Send request bodies as JSON with the `Content-Type: application/json` header. ## Response Format
+
+
+    All successful responses return JSON with a `data` wrapper:
+
+
+    ```json
+
+    {
+
+    "data": { ...'
   title: Agree Customers API
   version: 1.0.0
 servers:
@@ -328,6 +519,14 @@ components:
       - name
       title: Customer
       type: object
+    CustomerResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/Customer'
+      required:
+      - data
+      title: CustomerResponse
+      type: object
     NotFound:
       description: Resource not found error
       example:
@@ -337,6 +536,81 @@ components:
           description: Error message
           type: string
       title: NotFound
+      type: object
+    CustomersResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Customer'
+          type: array
+        pagination:
+          properties:
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total_entries:
+              type: integer
+            total_pages:
+              type: integer
+          required:
+          - page
+          - page_size
+          - total_pages
+          - total_entries
+          type: object
+      required:
+      - data
+      - pagination
+      title: CustomersResponse
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
       type: object
     CustomerParams:
       description: 'Parameters for creating or updating a customer.
@@ -400,89 +674,6 @@ components:
       required:
       - customer
       title: CustomerParams
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
-      type: object
-    CustomerResponse:
-      properties:
-        data:
-          $ref: '#/components/schemas/Customer'
-      required:
-      - data
-      title: CustomerResponse
-      type: object
-    Forbidden:
-      description: Access denied to the requested resource
-      example:
-        error: You do not have access to this resource
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Forbidden
-      type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
-      example:
-        error: Invalid or missing API key
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: Unauthorized
-      type: object
-    CustomersResponse:
-      properties:
-        data:
-          items:
-            $ref: '#/components/schemas/Customer'
-          type: array
-        pagination:
-          properties:
-            page:
-              type: integer
-            page_size:
-              type: integer
-            total_entries:
-              type: integer
-            total_pages:
-              type: integer
-          required:
-          - page
-          - page_size
-          - total_pages
-          - total_entries
-          type: object
-      required:
-      - data
-      - pagination
-      title: CustomersResponse
-      type: object
-    BadRequest:
-      description: Invalid request parameters
-      example:
-        error: Invalid page or page_size
-      properties:
-        error:
-          description: Error message
-          type: string
-      title: BadRequest
       type: object
   securitySchemes:
     bearer:

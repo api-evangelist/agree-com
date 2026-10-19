@@ -1,0 +1,419 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API!'
+  title: Agree Reports API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- description: Read-only analytics for revenue, cashflow, and accounts receivable recovery.
+  name: Reports
+paths:
+  /api/v1/reports/revenue/stats:
+    get:
+      callbacks: {}
+      description: Returns ARR, MRR, MRR growth rate, net revenue retention (NRR), and top-5 customer concentration.
+      operationId: AgreeWeb.API.V1.ReportController.revenue_stats
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDataResponse'
+          description: Revenue statistics
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Revenue statistics
+      tags:
+      - Reports
+  /api/v1/reports/recovery/aging/trend:
+    get:
+      callbacks: {}
+      description: Returns total overdue amount and average days overdue per month.
+      operationId: AgreeWeb.API.V1.ReportController.recovery_aging_trend
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Aging trend
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Aging trend
+      tags:
+      - Reports
+  /api/v1/reports/revenue/chart:
+    get:
+      callbacks: {}
+      description: Returns historical and forecast MRR/ARR by month.
+      operationId: AgreeWeb.API.V1.ReportController.revenue_chart
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Revenue chart
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Revenue chart data
+      tags:
+      - Reports
+  /api/v1/reports/recovery/leakage/stage_durations:
+    get:
+      callbacks: {}
+      description: Returns average days between invoice stages for current vs previous six-month periods.
+      operationId: AgreeWeb.API.V1.ReportController.recovery_leakage_stage_durations
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDataResponse'
+          description: Stage durations
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Stage duration statistics
+      tags:
+      - Reports
+  /api/v1/reports/recovery/leakage/stats:
+    get:
+      callbacks: {}
+      description: Returns invoice counts and amounts by stage (drafted, outstanding, overdue, paid).
+      operationId: AgreeWeb.API.V1.ReportController.recovery_leakage_stats
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDataResponse'
+          description: Leakage statistics
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Leakage statistics
+      tags:
+      - Reports
+  /api/v1/reports/recovery/leakage/waterfall:
+    get:
+      callbacks: {}
+      description: Returns waterfall stages for invoice progression (drafted → outstanding → overdue → paid).
+      operationId: AgreeWeb.API.V1.ReportController.recovery_leakage_waterfall
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Leakage waterfall
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Leakage waterfall
+      tags:
+      - Reports
+  /api/v1/reports/cashflow/chart:
+    get:
+      callbacks: {}
+      description: Returns historical and forecast cash collected by month.
+      operationId: AgreeWeb.API.V1.ReportController.cashflow_chart
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Cashflow chart
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Cashflow chart data
+      tags:
+      - Reports
+  /api/v1/reports/recovery/leakage/stalled_invoices:
+    get:
+      callbacks: {}
+      description: Lists invoices that have been stalled in a workflow stage.
+      operationId: AgreeWeb.API.V1.ReportController.recovery_leakage_stalled_invoices
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Stalled invoices
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Stalled invoices
+      tags:
+      - Reports
+  /api/v1/reports/cashflow/forecast:
+    get:
+      callbacks: {}
+      description: Returns projected cash from outstanding invoices due in the next 30, 60, and 90 days.
+      operationId: AgreeWeb.API.V1.ReportController.cashflow_forecast
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDataResponse'
+          description: Cash forecast
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Cash forecast
+      tags:
+      - Reports
+  /api/v1/reports/revenue/customers_by_mrr:
+    get:
+      callbacks: {}
+      description: Lists customers ranked by current monthly recurring revenue from active subscriptions.
+      operationId: AgreeWeb.API.V1.ReportController.revenue_customers_by_mrr
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Customers by MRR
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Customers by MRR
+      tags:
+      - Reports
+  /api/v1/reports/cashflow/outstanding_invoices:
+    get:
+      callbacks: {}
+      description: Lists outstanding (sent or due) invoices with customer and aging details.
+      operationId: AgreeWeb.API.V1.ReportController.cashflow_outstanding_invoices
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Outstanding invoices
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Outstanding invoices
+      tags:
+      - Reports
+  /api/v1/reports/cashflow/stats:
+    get:
+      callbacks: {}
+      description: 'Returns cash collected month-to-date, outstanding invoice total, days sales outstanding (DSO),
+
+        and payment failure rate.'
+      operationId: AgreeWeb.API.V1.ReportController.cashflow_stats
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDataResponse'
+          description: Cashflow statistics
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Cashflow statistics
+      tags:
+      - Reports
+  /api/v1/reports/revenue/customers:
+    get:
+      callbacks: {}
+      description: Lists customers ranked by total paid invoice revenue.
+      operationId: AgreeWeb.API.V1.ReportController.revenue_customers
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Customers by revenue
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Customers by revenue
+      tags:
+      - Reports
+  /api/v1/reports/recovery/aging/chart:
+    get:
+      callbacks: {}
+      description: Returns overdue invoice amounts by aging bucket for the past six months.
+      operationId: AgreeWeb.API.V1.ReportController.recovery_aging_chart
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListDataResponse'
+          description: Aging chart
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Aging chart data
+      tags:
+      - Reports
+  /api/v1/reports/recovery/aging/invoices:
+    get:
+      callbacks: {}
+      description: Lists outstanding invoices grouped by aging bucket (current, 1-30, 31-60, 61-90, 90+ days).
+      operationId: AgreeWeb.API.V1.ReportController.recovery_aging_invoices
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDataResponse'
+          description: Invoices by aging
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+      security:
+      - bearer: []
+      summary: Invoices by aging bucket
+      tags:
+      - Reports
+components:
+  schemas:
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    ReportListDataResponse:
+      description: Report data payload containing a list
+      properties:
+        data:
+          description: List of report records
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+      required:
+      - data
+      title: ReportListDataResponse
+      type: object
+    ReportDataResponse:
+      description: Report data payload
+      properties:
+        data:
+          additionalProperties: true
+          description: Report-specific payload
+          type: object
+      required:
+      - data
+      title: ReportDataResponse
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http

@@ -3,7 +3,198 @@ info:
   description: '# Introduction
 
 
-    Welcome to the Agree API!'
+    Welcome to the Agree API! Agree is a payments and agreements platform that helps businesses send invoices, collect payments, and manage customer relationships. This API lets you integrate Agree''s capabilities directly into your application. ## What You Can Do
+
+
+    With the Agree API, you can:
+
+
+    - **Create and send invoices** to customers with flexible payment options (ACH, credit card, wire transfer)
+
+    - **Manage contacts** in your organization''s address book
+
+    - **Set up recurring invoices** with customizable schedules
+
+    - **Receive real-time notifications** via webhooks when payments are made or invoices change status
+
+    - **Track payment status** and history programmatically
+
+
+    ## Quick Start
+
+
+    Here''s how to send your first invoice in three API calls:
+
+
+    ### 1. Get Your API Key
+
+
+    Generate an API key in your Agree dashboard under **Settings > API Keys**. Keep this key secure - it provides full access to your organization''s data. ### 2. Create a Contact
+
+
+    First, add the customer you want to invoice:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/contacts \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "contact": {
+
+    "name": "Jane Smith",
+
+    "email": "jane@example.com",
+
+    "company": "Acme Corp"
+
+    }
+
+    }''
+
+    ```
+
+
+    ### 3. Create and Send an Invoice
+
+
+    Now create and send an invoice for that contact. You can use the convenience endpoint to do both in one request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "jane@example.com"
+
+    },
+
+    "amount": {"amount": 10000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach"],
+
+    "due_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Consulting services - January 2025"
+
+    }
+
+    }''
+
+    ```
+
+
+    The invoice will be created and immediately sent to the customer via email. They''ll receive a payment link where they can pay using their preferred method. **Alternative:** You can also create the invoice first with `POST /api/v1/invoices`, then send it later with `POST /api/v1/invoices/:id/send` if you need to review or modify it before sending. ### 4. Get Notified When They Pay
+
+
+    Set up a webhook to know when the invoice is paid:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "webhook_endpoint": {
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"]
+
+    }
+
+    }''
+
+    ```
+
+
+    Save the `secret` from the response - you''ll need it to verify webhook signatures. ## How Resources Connect
+
+
+    Understanding how Agree''s resources relate to each other will help you build effective integrations:
+
+
+    ```
+
+    Contacts ──────► Invoices ──────► Webhooks
+
+    │ │ │
+
+    │ │ │
+
+    ▼ ▼ ▼
+
+    People you Payment Real-time
+
+    do business requests notifications
+
+    with you send when things
+
+    to contacts happen
+
+    ```
+
+
+    - **Contacts** are people or companies in your address book. You can create contacts explicitly, or they''re created automatically when you send an invoice to a new email address. - **Invoices** are payment requests sent to contacts. Each invoice has an amount, due date, and accepted payment methods. Invoices progress through a lifecycle from created → sent → paid (or failed/canceled). - **Webhooks** notify your application when invoice events occur. This lets you update your systems in real-time without polling. ## Base URL
+
+
+    All API requests should be made to:
+
+
+    ```
+
+    https://api.agree.com/api/v1
+
+    ```
+
+
+    ## Authentication
+
+
+    All endpoints require Bearer token authentication. Include your API key in the Authorization header:
+
+
+    ```
+
+    Authorization: Bearer YOUR_API_KEY
+
+    ```
+
+
+    Keep your API key secure. If compromised, regenerate it immediately in your dashboard. ## Request Format
+
+
+    Send request bodies as JSON with the `Content-Type: application/json` header. ## Response Format
+
+
+    All successful responses return JSON with a `data` wrapper:
+
+
+    ```json
+
+    {
+
+    "data": { ...'
   title: Agree Webhooks API
   version: 1.0.0
 servers:
@@ -11,7 +202,176 @@ servers:
   variables: {}
 security: []
 tags:
-- description: Receive real-time notifications when events occur in your Agree account.
+- description: 'Receive real-time notifications when events occur in your Agree account. ## Overview
+
+
+    Webhooks push event data to your application as soon as something happens - like when an invoice is paid or a payment fails. This eliminates the need to poll the API for updates and lets you respond to events instantly. **Key concepts:**
+
+
+    - You register a URL endpoint that Agree will call when events occur
+
+    - Each endpoint can subscribe to specific event types
+
+    - Webhook payloads are signed so you can verify they came from Agree
+
+    - Failed deliveries are automatically retried with exponential backoff
+
+
+    ## Quick Setup
+
+
+    ### 1. Create an Endpoint
+
+
+    Register a URL to receive webhooks:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "webhook_endpoint": {
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"]
+
+    }
+
+    }''
+
+    ```
+
+
+    **Response:**
+
+
+    ```json
+
+    {
+
+    "data": {
+
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"],
+
+    "active": true,
+
+    "failure_count": 0,
+
+    "secret": "whsec_abc123xyz789...",
+
+    "inserted_at": "2025-01-15T10:30:00Z",
+
+    "updated_at": "2025-01-15T10:30:00Z"
+
+    }
+
+    }
+
+    ```
+
+
+    **Important:** Save the `secret` - it''s only returned once at creation. You''ll need it to verify webhook signatures. ### 2. Handle Incoming Webhooks
+
+
+    When an event occurs, Agree sends a POST request to your endpoint:
+
+
+    ```json
+
+    {
+
+    "event": "invoice.paid",
+
+    "payload": {
+
+    "id": "4a755746-ba45-4226-a669-aebc7ad3719c",
+
+    "status": "paid",
+
+    "amount": {"amount": 15000, "currency": "USD"},
+
+    "paid_at": "2025-01-20T14:30:00Z"
+
+    }
+
+    }
+
+    ```
+
+
+    ### 3. Verify the Signature
+
+
+    Always verify webhooks came from Agree before processing them. See Verifying Webhooks below. ### 4. Test Your Integration
+
+
+    Send a test webhook to verify your endpoint works:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints/550e8400-e29b-41d4-a716-446655440000/test \
+
+    -H "Authorization: Bearer YOUR_API_KEY"
+
+    ```
+
+
+    ## Available Events
+
+
+    Subscribe to the events your application needs:
+
+
+    | Event | Description | When it fires |
+
+    |-------|-------------|---------------|
+
+    | `invoice.created` | Invoice was created | After POST /invoices |
+
+    | `invoice.sent` | Invoice emailed to customer | When delivery completes |
+
+    | `invoice.due` | Invoice reached due status | When status becomes `due`: either the scheduled job runs after `sent` (past `due_at`), or the invoice is sent already at/past `due_at` (immediate `due`) |
+
+    | `invoice.paid` | Payment successful | After payment confirmation |
+
+    | `invoice.failed` | Payment attempt failed | After payment rejection |
+
+    | `invoice.canceled` | Invoice was canceled | After DELETE /invoices |
+
+    | `invoice.refunded` | Invoice payment was refunded | After refund is processed |
+
+    | `agreement.created` | Agreement was created | After POST /agreements |
+
+    | `agreement.sent` | Agreement was sent to recipients | When status changes to ''sent'' |
+
+    | `agreement.signed` | Agreement was signed by a recipient | When a recipient signs |
+
+    | `agreement.executed` | Agreement was fully executed | When all signers have signed |
+
+    | `subscription.created` | Metered subscription was created | After a metered subscription is created |
+
+    | `usage_period.pending_entry` | Usage period closed and waits for usage | Up to 3 hours after `period_end`, or when an admin reopens a committed period |
+
+    | `usage_period.committed` | Usage was committed and the invoice is sending | After usage is committed |
+
+    | `usage_period.reopened` | A closed usage period is open again; its draft invoice is deleted | When an admin undoes a period close |
+
+    | `webhook.test` | Test event | When you trigger a test |
+
+
+    The `subscription.created` and `usage_period.*` events fire only for workspaces with metered billing. **Tip:** Start with `invoice.paid` and `invoice.failed` - these are the most important for payment integrations.'
   name: Webhooks
 paths:
   /api/v1/webhooks:
@@ -301,18 +661,6 @@ paths:
       - Webhooks
 components:
   schemas:
-    WebhookEndpointsResponse:
-      description: Response containing a list of webhook endpoints
-      properties:
-        data:
-          description: List of webhook endpoints
-          items:
-            $ref: '#/components/schemas/WebhookEndpoint'
-          type: array
-      required:
-      - data
-      title: WebhookEndpointsResponse
-      type: object
     WebhookEndpoint:
       description: A webhook endpoint configuration
       example:
@@ -360,33 +708,14 @@ components:
       - active
       title: WebhookEndpoint
       type: object
-    NotFound:
-      description: Resource not found error
-      example:
-        error: Not found
+    WebhookEndpointCreatedResponse:
+      description: Response containing a newly created webhook endpoint with signing secret
       properties:
-        error:
-          description: Error message
-          type: string
-      title: NotFound
-      type: object
-    Error:
-      description: Error response with field-specific error messages
-      example:
-        errors:
-          amount:
-          - can't be blank
-          recurring_options:
-          - is invalid
-      properties:
-        errors:
-          additionalProperties:
-            items:
-              type: string
-            type: array
-          description: Map of field names to arrays of error messages
-          type: object
-      title: Error
+        data:
+          $ref: '#/components/schemas/WebhookEndpointWithSecret'
+      required:
+      - data
+      title: WebhookEndpointCreatedResponse
       type: object
     WebhookEndpointWithSecret:
       description: Webhook endpoint with signing secret (only returned on creation)
@@ -438,15 +767,15 @@ components:
       - data
       title: WebhookEndpointResponse
       type: object
-    Unauthorized:
-      description: Authentication required or invalid credentials
+    NotFound:
+      description: Resource not found error
       example:
-        error: Invalid or missing API key
+        error: Not found
       properties:
         error:
           description: Error message
           type: string
-      title: Unauthorized
+      title: NotFound
       type: object
     WebhookEndpointParams:
       description: Parameters for creating or updating a webhook endpoint
@@ -516,14 +845,45 @@ components:
       - data
       title: WebhookTestResponse
       type: object
-    WebhookEndpointCreatedResponse:
-      description: Response containing a newly created webhook endpoint with signing secret
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    WebhookEndpointsResponse:
+      description: Response containing a list of webhook endpoints
       properties:
         data:
-          $ref: '#/components/schemas/WebhookEndpointWithSecret'
+          description: List of webhook endpoints
+          items:
+            $ref: '#/components/schemas/WebhookEndpoint'
+          type: array
       required:
       - data
-      title: WebhookEndpointCreatedResponse
+      title: WebhookEndpointsResponse
       type: object
   securitySchemes:
     bearer:

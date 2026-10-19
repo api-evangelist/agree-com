@@ -2657,6 +2657,75 @@ apis:
     url: asyncapi/agree-com-webhooks-asyncapi.yml
   - type: ToolCrosswalk
     url: mcp/agree-com-tool-crosswalk.yml
+- aid: agree-com:agree-com-subscriptions-api
+  name: Agree.com Subscriptions API
+  description: >-
+    Bill customers for what they use. A metered subscription has a rate card (a price per unit) and a
+    billing cadence. After each period ends, you report the units used and Agree sends the invoice.
+
+
+    These endpoints need metered billing on your workspace. Without it, they return `403`.
+
+
+    ## How It Works
+
+
+    Usage is billed in arrears:
+
+
+    1. The first period starts on the issue date (`issue_terms`, today by default). It sends no invoice.
+
+    2. Up to 3 hours after `period_end`, the period moves from `open` to `pending_entry`. Agree creates
+    a draft invoice with the rate card lines at quantity 0, opens the next period (see below for subscriptions
+    that end), and sends the `usage_period.pending_entry` webhook.
+
+    3. You report usage against the draft's `line_items[].id` values and commit. The invoice is sent and
+    the period becomes `committed`.
+
+
+    Periods do not wait for each other: several can be `pending_entry` at once.
+
+
+    A subscription with an end (`recurring_end_type` of `count` or `date`) opens no period after its last
+    one and becomes `completed`. With an end date, the last period stops on that date. You still commit
+    usage for the last period.
+
+
+    ## Knowing When to Report Usage
+
+
+    - **Webhooks (recommended):** subscribe to `usage_period.pending_entry`. The payload is the full usage
+    period, including line item IDs.
+
+    - **Polling:** `GET /usage_periods?status=pending_entry` lists every period that waits for usage,
+    across all subscriptions.
+
+
+    Do not report usage at `period_end` exactly. Until the period is `pending_entry`, writes return `409`.
+
+
+    ## Committing Usage
+
+
+    `POST /usage_periods/{id}/commit` with `{"usage": [{"line_item_id": "…", "quantity": "1250"}]}`:
+
+
+    - Key each quantity by an invoice line's `id`. Lines you leave out keep their quantity, for example
+    a one-time setup fee. Prices come from the draft invoice; you cannot change them.
+
+    - Send `quantity` as a string to keep decimal precision. The range is 0 to 999999.99.
+
+    - The invoice is sent right away and is due on receipt. Its total must be at least the currency minimum
+    (for example, $0.50).
+
+    - A second commit returns `409`, so retrying after a timeout cannot bill twice.
+  humanURL: https://secure.agree.com/documentation
+  baseURL: https://secure.agree.com/api/v1
+  tags:
+  - Subscriptions
+  properties:
+  - type: OpenAPI
+    url: openapi/agree-com-subscriptions-api-openapi.yml
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com

@@ -1,0 +1,1057 @@
+openapi: 3.2.0
+info:
+  description: '# Introduction
+
+
+    Welcome to the Agree API! Agree is a payments and agreements platform that helps businesses send invoices, collect payments, and manage customer relationships. This API lets you integrate Agree''s capabilities directly into your application. ## What You Can Do
+
+
+    With the Agree API, you can:
+
+
+    - **Create and send invoices** to customers with flexible payment options (ACH, credit card, wire transfer)
+
+    - **Manage contacts** in your organization''s address book
+
+    - **Set up recurring invoices** with customizable schedules
+
+    - **Receive real-time notifications** via webhooks when payments are made or invoices change status
+
+    - **Track payment status** and history programmatically
+
+
+    ## Quick Start
+
+
+    Here''s how to send your first invoice in three API calls:
+
+
+    ### 1. Get Your API Key
+
+
+    Generate an API key in your Agree dashboard under **Settings > API Keys**. Keep this key secure - it provides full access to your organization''s data. ### 2. Create a Contact
+
+
+    First, add the customer you want to invoice:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/contacts \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "contact": {
+
+    "name": "Jane Smith",
+
+    "email": "jane@example.com",
+
+    "company": "Acme Corp"
+
+    }
+
+    }''
+
+    ```
+
+
+    ### 3. Create and Send an Invoice
+
+
+    Now create and send an invoice for that contact. You can use the convenience endpoint to do both in one request:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/invoices/create_and_send \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "invoice": {
+
+    "billing_contact": {
+
+    "email": "jane@example.com"
+
+    },
+
+    "amount": {"amount": 10000, "currency": "USD"},
+
+    "payment_methods": ["card", "ach"],
+
+    "due_at": "2025-02-01T00:00:00Z",
+
+    "memo": "Consulting services - January 2025"
+
+    }
+
+    }''
+
+    ```
+
+
+    The invoice will be created and immediately sent to the customer via email. They''ll receive a payment link where they can pay using their preferred method. **Alternative:** You can also create the invoice first with `POST /api/v1/invoices`, then send it later with `POST /api/v1/invoices/:id/send` if you need to review or modify it before sending. ### 4. Get Notified When They Pay
+
+
+    Set up a webhook to know when the invoice is paid:
+
+
+    ```bash
+
+    curl -X POST https://api.agree.com/api/v1/webhook_endpoints \
+
+    -H "Authorization: Bearer YOUR_API_KEY" \
+
+    -H "Content-Type: application/json" \
+
+    -d ''{
+
+    "webhook_endpoint": {
+
+    "url": "https://your-app.com/webhooks/agree",
+
+    "events": ["invoice.paid", "invoice.failed"]
+
+    }
+
+    }''
+
+    ```
+
+
+    Save the `secret` from the response - you''ll need it to verify webhook signatures. ## How Resources Connect
+
+
+    Understanding how Agree''s resources relate to each other will help you build effective integrations:
+
+
+    ```
+
+    Contacts ──────► Invoices ──────► Webhooks
+
+    │ │ │
+
+    │ │ │
+
+    ▼ ▼ ▼
+
+    People you Payment Real-time
+
+    do business requests notifications
+
+    with you send when things
+
+    to contacts happen
+
+    ```
+
+
+    - **Contacts** are people or companies in your address book. You can create contacts explicitly, or they''re created automatically when you send an invoice to a new email address. - **Invoices** are payment requests sent to contacts. Each invoice has an amount, due date, and accepted payment methods. Invoices progress through a lifecycle from created → sent → paid (or failed/canceled). - **Webhooks** notify your application when invoice events occur. This lets you update your systems in real-time without polling. ## Base URL
+
+
+    All API requests should be made to:
+
+
+    ```
+
+    https://api.agree.com/api/v1
+
+    ```
+
+
+    ## Authentication
+
+
+    All endpoints require Bearer token authentication. Include your API key in the Authorization header:
+
+
+    ```
+
+    Authorization: Bearer YOUR_API_KEY
+
+    ```
+
+
+    Keep your API key secure. If compromised, regenerate it immediately in your dashboard. ## Request Format
+
+
+    Send request bodies as JSON with the `Content-Type: application/json` header. ## Response Format
+
+
+    All successful responses return JSON with a `data` wrapper:
+
+
+    ```json
+
+    {
+
+    "data": { ...'
+  title: Agree Subscriptions API
+  version: 1.0.0
+servers:
+- url: https://secure.agree.com
+  variables: {}
+security: []
+tags:
+- description: 'Bill customers for what they use. A metered subscription has a rate card (a price per unit) and a billing cadence. After each period ends, you report the units used and Agree sends the invoice.
+
+
+    These endpoints need metered billing on your workspace. Without it, they return `403`.
+
+
+    ## How It Works
+
+
+    Usage is billed in arrears:
+
+
+    1. The first period starts on the issue date (`issue_terms`, today by default). It sends no invoice.
+
+    2. Up to 3 hours after `period_end`, the period moves from `open` to `pending_entry`. Agree creates a draft invoice with the rate card lines at quantity 0, opens the next period (see below for subscriptions that end), and sends the `usage_period.pending_entry` webhook.
+
+    3. You report usage against the draft''s `line_items[].id` values and commit. The invoice is sent and the period becomes `committed`.
+
+
+    Periods do not wait for each other: several can be `pending_entry` at once.
+
+
+    A subscription with an end (`recurring_end_type` of `count` or `date`) opens no period after its last one and becomes `completed`. With an end date, the last period stops on that date. You still commit usage for the last period.
+
+
+    ## Knowing When to Report Usage
+
+
+    - **Webhooks (recommended):** subscribe to `usage_period.pending_entry`. The payload is the full usage period, including line item IDs.
+
+    - **Polling:** `GET /usage_periods?status=pending_entry` lists every period that waits for usage, across all subscriptions.
+
+
+    Do not report usage at `period_end` exactly. Until the period is `pending_entry`, writes return `409`.
+
+
+    ## Committing Usage
+
+
+    `POST /usage_periods/{id}/commit` with `{"usage": [{"line_item_id": "…", "quantity": "1250"}]}`:
+
+
+    - Key each quantity by an invoice line''s `id`. Lines you leave out keep their quantity, for example a one-time setup fee. Prices come from the draft invoice; you cannot change them.
+
+    - Send `quantity` as a string to keep decimal precision. The range is 0 to 999999.99.
+
+    - The invoice is sent right away and is due on receipt. Its total must be at least the currency minimum (for example, $0.50).
+
+    - A second commit returns `409`, so retrying after a timeout cannot bill twice.'
+  name: Subscriptions
+paths:
+  /api/v1/usage_periods/{id}:
+    get:
+      callbacks: {}
+      description: Returns one usage period with its invoice and line items. Use the line item IDs to report usage. Requires metered billing for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.MeteredBillingController.period
+      parameters:
+      - description: Usage period ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsagePeriodResponse'
+          description: Usage period
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get usage period
+      tags:
+      - Subscriptions
+  /api/v1/metered_subscriptions:
+    get:
+      callbacks: {}
+      description: Returns a paginated list of metered (usage-based) subscriptions, newest first, with their rate card and the period running now. Filter with `status=pending_usage` to find subscriptions that wait for usage. Requires metered billing for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.MeteredBillingController.index
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+      - description: 'One of: active, inactive, paused, canceled, completed, pending_usage'
+        in: query
+        name: status
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeteredSubscriptionsResponse'
+          description: Metered subscriptions
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: List metered subscriptions
+      tags:
+      - Subscriptions
+    post:
+      callbacks: {}
+      description: 'Creates a usage-based subscription for a customer or contact in your organization. The first period starts per `issue_terms` (default: today) and sends no invoice. When a period ends, it moves to `pending_entry` with a draft invoice (up to 3 hours after `period_end`) and the `usage_period.pending_entry` webhook fires. Then commit usage with `POST /usage_periods/{id}/commit`. Requires metered billing for the organization (403 otherwise).'
+      operationId: AgreeWeb.API.V1.MeteredBillingController.create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeteredSubscriptionParams'
+        description: Metered subscription
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeteredSubscriptionResponse'
+          description: Metered subscription created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Create metered subscription
+      tags:
+      - Subscriptions
+  /api/v1/metered_subscriptions/{id}:
+    get:
+      callbacks: {}
+      description: Returns one metered subscription with its rate card and the period running now. Requires metered billing for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.MeteredBillingController.show
+      parameters:
+      - description: Metered subscription ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeteredSubscriptionResponse'
+          description: Metered subscription
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: Get metered subscription
+      tags:
+      - Subscriptions
+  /api/v1/usage_periods/{id}/commit:
+    post:
+      callbacks: {}
+      description: Sets the usage on a `pending_entry` period's invoice and sends it to the customer right away. Key each quantity by line item ID; lines you leave out keep their quantity. Returns 409 if the period is still open or already committed, so a retried commit cannot bill twice. Cannot be undone through the API. Requires metered billing for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.MeteredBillingController.commit
+      parameters:
+      - description: Usage period ID (UUID)
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsageParams'
+        description: Usage
+        required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsagePeriodResponse'
+          description: Committed usage period
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conflict'
+          description: Period is not awaiting usage
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation errors
+      security:
+      - bearer: []
+      summary: Commit usage and send the invoice
+      tags:
+      - Subscriptions
+  /api/v1/usage_periods:
+    get:
+      callbacks: {}
+      description: Returns a paginated list of usage periods across your metered subscriptions, newest first, each with its invoice and line items. Poll with `status=pending_entry` to find every period that waits for usage. Requires metered billing for the organization (403 otherwise).
+      operationId: AgreeWeb.API.V1.MeteredBillingController.periods
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+      - description: 'One of: open, pending_entry, committed'
+        in: query
+        name: status
+        required: false
+        schema:
+          type: string
+      - description: Only this subscription's periods (UUID)
+        in: query
+        name: metered_subscription_id
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsagePeriodsResponse'
+          description: Usage periods
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthorized'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+          description: Not found
+      security:
+      - bearer: []
+      summary: List usage periods
+      tags:
+      - Subscriptions
+components:
+  schemas:
+    MeteredSubscriptionParams:
+      description: 'Give `customer_id` or `contact_id`; it must belong to your organization. The rate card holds one price per unit, in the smallest currency unit (cents). Without `recurring_options`, the subscription bills monthly on the 1st with no end date. Dates are `YYYY-MM-DD`, read as UTC.
+
+        '
+      properties:
+        metered_subscription:
+          properties:
+            cc_contact_ids:
+              items:
+                format: uuid
+                type: string
+              type: array
+            contact_id:
+              format: uuid
+              type: string
+            customer_id:
+              format: uuid
+              type: string
+            issue_terms:
+              description: 'When the first period starts. Default: today.'
+              properties:
+                date:
+                  format: date
+                  type: string
+                days:
+                  type: integer
+                type:
+                  enum:
+                  - net
+                  - date
+                  type: string
+              type: object
+            memo:
+              maxLength: 255
+              type: string
+            payment_methods:
+              items:
+                enum:
+                - ach
+                - card
+                - wire
+                type: string
+              type: array
+            rate_card:
+              items:
+                properties:
+                  description:
+                    type: string
+                  unit_marker:
+                    description: Unit label, e.g. `call` or `hour`
+                    type: string
+                  unit_price:
+                    $ref: '#/components/schemas/Money'
+                required:
+                - description
+                - unit_price
+                - unit_marker
+                type: object
+              maxItems: 1
+              minItems: 1
+              type: array
+            recurring_options:
+              $ref: '#/components/schemas/MeteredRecurringOptions'
+            team_id:
+              format: uuid
+              type: string
+          required:
+          - rate_card
+          type: object
+      required:
+      - metered_subscription
+      title: MeteredSubscriptionParams
+      type: object
+    MeteredLineItem:
+      properties:
+        description:
+          type: string
+        id:
+          description: 'On an invoice line: pass as `line_item_id` to report usage'
+          format: uuid
+          type: string
+        price_kind:
+          enum:
+          - metered
+          - recurring
+          - one_time
+          type:
+          - string
+          - 'null'
+        quantity:
+          description: Decimal quantity, as a string
+          type: string
+        unit_marker:
+          description: Unit label, e.g. `call` or `hour`
+          type:
+          - string
+          - 'null'
+        unit_price:
+          $ref: '#/components/schemas/Money'
+      required:
+      - id
+      - description
+      - unit_price
+      title: MeteredLineItem
+      type: object
+    MeteredSubscriptionsResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/MeteredSubscription'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/MeteredPagination'
+      required:
+      - data
+      - pagination
+      title: MeteredSubscriptionsResponse
+      type: object
+    UsagePeriod:
+      description: 'One billing period. Usage is billed in arrears: `open` while it runs, `pending_entry` once it ends and its draft invoice exists (up to 3 hours after `period_end`), `committed` once usage is final and the invoice is sent.
+
+        '
+      properties:
+        committed_at:
+          format: date-time
+          type:
+          - string
+          - 'null'
+        id:
+          format: uuid
+          type: string
+        invoice:
+          description: Null while the period is open
+          properties:
+            amount:
+              $ref: '#/components/schemas/Money'
+            id:
+              format: uuid
+              type: string
+            line_items:
+              items:
+                $ref: '#/components/schemas/MeteredLineItem'
+              type: array
+            status:
+              type: string
+          type:
+          - object
+          - 'null'
+        invoice_template_id:
+          description: The metered subscription ID
+          format: uuid
+          type: string
+        period_end:
+          format: date-time
+          type: string
+        period_start:
+          format: date-time
+          type: string
+        status:
+          enum:
+          - open
+          - pending_entry
+          - committed
+          type: string
+        subscription_reference:
+          description: The subscription's label in the app, e.g. `SUB-7CE787`. For display, not lookups.
+          type: string
+      required:
+      - id
+      - status
+      - period_start
+      - period_end
+      - invoice_template_id
+      title: UsagePeriod
+      type: object
+    MeteredSubscription:
+      description: A usage-based subscription. Each period you report usage, then commit it to send the invoice.
+      properties:
+        current_period:
+          description: The latest open or pending period
+          properties:
+            id:
+              format: uuid
+              type: string
+            period_end:
+              format: date-time
+              type: string
+            period_start:
+              format: date-time
+              type: string
+            status:
+              enum:
+              - open
+              - pending_entry
+              type: string
+          type:
+          - object
+          - 'null'
+        customer_id:
+          format: uuid
+          type:
+          - string
+          - 'null'
+        has_pending_usage:
+          description: A closed period waits for usage
+          type: boolean
+        id:
+          format: uuid
+          type: string
+        memo:
+          type:
+          - string
+          - 'null'
+        payment_methods:
+          items:
+            type: string
+          type: array
+        rate_card:
+          items:
+            $ref: '#/components/schemas/MeteredLineItem'
+          type: array
+        recipient:
+          description: The contact who receives the invoices
+          properties:
+            email:
+              type: string
+            name:
+              type:
+              - string
+              - 'null'
+          type:
+          - object
+          - 'null'
+        recurring_options:
+          $ref: '#/components/schemas/MeteredRecurringOptions'
+        reference:
+          description: The subscription's label in the app, e.g. `SUB-7CE787`. For display, not lookups.
+          type: string
+        status:
+          enum:
+          - active
+          - inactive
+          - paused
+          - canceled
+          - completed
+          type: string
+        team_id:
+          format: uuid
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - status
+      - rate_card
+      title: MeteredSubscription
+      type: object
+    MeteredRecurringOptions:
+      properties:
+        recurring_end_date:
+          format: date
+          type:
+          - string
+          - 'null'
+        recurring_end_type:
+          enum:
+          - never
+          - date
+          - count
+          type: string
+        recurring_total_count:
+          description: Billing periods, with end type `count`
+          type:
+          - integer
+          - 'null'
+        repeat_frequency:
+          minimum: 1
+          type: integer
+        repeat_on_day:
+          type:
+          - integer
+          - 'null'
+        repeat_on_type:
+          enum:
+          - day_of_month
+          - day_of_week
+          type:
+          - string
+          - 'null'
+        repeat_on_week:
+          type:
+          - integer
+          - 'null'
+        repeat_on_weekday:
+          type:
+          - string
+          - 'null'
+        repeat_unit:
+          enum:
+          - week
+          - month
+          type: string
+      title: MeteredRecurringOptions
+      type: object
+    MeteredPagination:
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_entries:
+          type: integer
+        total_pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - total_pages
+      - total_entries
+      title: MeteredPagination
+      type: object
+    Forbidden:
+      description: Access denied to the requested resource
+      example:
+        error: You do not have access to this resource
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Forbidden
+      type: object
+    NotFound:
+      description: Resource not found error
+      example:
+        error: Not found
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: NotFound
+      type: object
+    Conflict:
+      description: The record's current status does not allow this action
+      example:
+        error: The record's current status does not allow this action
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Conflict
+      type: object
+    Error:
+      description: Error response with field-specific error messages
+      example:
+        errors:
+          amount:
+          - can't be blank
+          recurring_options:
+          - is invalid
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Map of field names to arrays of error messages
+          type: object
+      title: Error
+      type: object
+    BadRequest:
+      description: Invalid request parameters
+      example:
+        error: Invalid page or page_size
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: BadRequest
+      type: object
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      example:
+        error: Invalid or missing API key
+      properties:
+        error:
+          description: Error message
+          type: string
+      title: Unauthorized
+      type: object
+    UsagePeriodsResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/UsagePeriod'
+          type: array
+        pagination:
+          $ref: '#/components/schemas/MeteredPagination'
+      required:
+      - data
+      - pagination
+      title: UsagePeriodsResponse
+      type: object
+    Money:
+      description: 'Monetary amount with currency.
+
+
+        IMPORTANT: `amount` is always an INTEGER in the smallest currency unit — cents for USD, EUR, GBP, etc. Never pass dollars. $1.00 is `100`, $15.00 is `1500`, $150.00 is `15000`. To convert a dollar amount to cents, multiply by 100 and round to the nearest integer.
+
+        '
+      example:
+        amount: 15000
+        currency: USD
+      properties:
+        amount:
+          description: Integer amount in the smallest currency unit (cents for USD). $1.00 = 100, $15.00 = 1500, $150.00 = 15000. Do NOT pass dollars.
+          type: integer
+        currency:
+          description: ISO 4217 currency code
+          example: USD
+          type: string
+      required:
+      - amount
+      - currency
+      title: Money
+      type: object
+    MeteredSubscriptionResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/MeteredSubscription'
+      required:
+      - data
+      title: MeteredSubscriptionResponse
+      type: object
+    UsageParams:
+      description: 'Units used per invoice line, keyed by the line''s ID (`invoice.line_items[].id`). Lines you leave out keep their quantity. Prices come from the rate card. An empty list commits the invoice as it is.
+
+        '
+      properties:
+        usage:
+          items:
+            properties:
+              line_item_id:
+                format: uuid
+                type: string
+              quantity:
+                description: Units used, 0 to 999999.99. A string keeps decimal precision.
+                type: string
+            required:
+            - line_item_id
+            - quantity
+            type: object
+          type: array
+      required:
+      - usage
+      title: UsageParams
+      type: object
+    UsagePeriodResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/UsagePeriod'
+      required:
+      - data
+      title: UsagePeriodResponse
+      type: object
+  securitySchemes:
+    bearer:
+      description: API key authentication via Bearer token
+      scheme: bearer
+      type: http
