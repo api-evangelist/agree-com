@@ -890,3 +890,9 @@ components:
       description: API key authentication via Bearer token
       scheme: bearer
       type: http
+x-provenance:
+  method: harvested
+  publisher: Agree.com
+  source: https://secure.agree.com/documentation/openapi
+  note: split by refine-openapis from the provider's own published document, verified by fetch (openapi/_original/*.fetch.json);
+    stamped by stamp-openapi-provenance.py (roadmap#793)
