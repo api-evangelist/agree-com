@@ -64,40 +64,140 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-Agree.com is a contract-to-cash platform that pairs free, unlimited e-signatures with
-invoicing, billing and integrated payments (ACH, card, wire), monetizing money movement rather
-than signatures. It raised a $7.2M seed round led by Pelion Venture Partners in May 2025 after
-a $3M pre-seed led by Better Tomorrow Ventures, and markets an "agentic revenue operating
-system" of named AI agents for contracts, billing, collections, recovery, reconciliation and
-insight.
+Agree.com is a contract-to-cash platform that combines free, unlimited e-signatures with invoicing, billing and integrated payments, positioning itself directly against DocuSign and Bill.com by giving the signature product away and monetizing the money movement that follows it. The company raised a $7.2M seed round led by Pelion Venture Partners in May 2025 after a $3M pre-seed led by Better Tomorrow Ventures. It markets an "agentic revenue operating system" built from named AI agents for contracts, billing, collections, recovery, reconciliation and insight. For developers it publishes a 56-operation REST API covering agreements, invoices, contacts, customers, cash-flow and recovery reporting, and webhooks, described by a real OpenAPI 3.0 document served anonymously at secure.agree.com/documentation/openapi, plus a hosted remote MCP server at secure.agree.com/mcp discoverable through RFC 9728 protected resource metadata and guarded by an OAuth 2.1 authorization server with PKCE and dynamic client registration.
 
-## What this profile found
+**Areas:** Agreements · E-Signature · Contract Management · Invoicing · Billing · Payments · Accounts Receivable · Fintech · Financial Services · Webhook · MCP · Agent-Native
 
-- **A real OpenAPI 3.0 contract** — 37 paths, 56 operations, 44 schemas, 6 tags, every
-  operation carrying a unique operationId, summary and description. It is served anonymously
-  at `https://secure.agree.com/documentation/openapi`, discovered from the `spec-url`
-  attribute of the Redoc page at `https://secure.agree.com/documentation`.
-- **A live hosted MCP server** at `https://secure.agree.com/mcp`, found by probing RFC 9728
-  protected-resource metadata. It is not documented anywhere on the site — `agree.com/developers`
-  advertises MCP as a one-line tile with no endpoint. The server is OAuth-gated (`tools/list`
-  returns 401), fronted by an OAuth 2.1 authorization server with PKCE S256, dynamic client
-  registration and a single `mcp` scope.
-- **A documented base URL that does not exist.** Agree's own documentation states "All API
-  requests should be made to: `https://api.agree.com/api/v1`" and every curl example uses that
-  host. `api.agree.com` has no DNS record. The working base is the OpenAPI `servers[]` entry,
-  `https://secure.agree.com`.
-- **No idempotency on any of 25 mutating operations**, including
-  `POST /api/v1/invoices/create_and_send`, which creates an invoice and emails a payment link
-  in one irreversible call.
-- **No refund operation.** The `refunded` invoice status and the `invoice.refunded` webhook
-  both exist, but no refund, void or reversal endpoint appears anywhere in the API.
-- **A complete webhook catalog** — 12 events, HMAC-SHA256 signed, five-attempt exponential
-  backoff — captured as a generated AsyncAPI 3.0 document.
-- **No SDKs, no CLI, no GitHub organization, no status page, no changelog, no deprecation
-  policy, and no published compliance certifications.**
+## Agree.com on APIs.io
 
-See `apis.yml` for the full artifact index.
+Everything profiled for Agree.com is published on APIs.io rather than in this repository. Start at the provider page — **[apis.io/providers/agree-com/](https://apis.io/providers/agree-com/)** — or go straight to one of the APIs or properties below.
 
-- https://agree.com/
-- https://agree.com/developers
-- https://secure.agree.com/documentation
+### APIs (6)
+
+- [Agree.com Agreements API](https://apis.io/apis/agree-com/agree-com-agreements-api/) — Create, send, and manage agreements with recipients and field assignments. ## Overview Agreements are documents that require signatures from one or more…
+- [Agree.com Contacts API](https://apis.io/apis/agree-com/agree-com-contacts-api/) — Manage your organization's contacts - the people and companies you do business with. ## Overview Contacts are the foundation of your billing workflow.…
+- [Agree.com Customers API](https://apis.io/apis/agree-com/agree-com-customers-api/) — The Customers API from Agree.com — 2 operation(s) for customers.
+- [Agree.com Invoices API](https://apis.io/apis/agree-com/agree-com-invoices-api/) — Create, send, and track payment requests to your customers. ## Overview Invoices are the core of Agree's payment system. An invoice represents a request for…
+- [Agree.com Reports API](https://apis.io/apis/agree-com/agree-com-reports-api/) — Read-only analytics for revenue, cashflow, and accounts receivable recovery. ## Overview Report endpoints mirror the in-app **Reports** dashboards…
+- [Agree.com Webhooks API](https://apis.io/apis/agree-com/agree-com-webhooks-api/) — Receive real-time notifications when events occur in your Agree account. ## Overview Webhooks push event data to your application as soon as something…
+
+### Published properties
+
+Each property below is a page on APIs.io carrying the machine-readable artifact and what it says.
+
+#### AsyncAPI (1)
+
+Event-driven and webhook contracts.
+
+- [Agree.com Webhooks](https://apis.io/asyncapis/agree-com/agree-com-webhooks-asyncapi/)
+
+#### Event channels (1)
+
+Individual events and webhooks the provider emits.
+
+- [/](https://apis.io/channels/agree-com/webhookendpoint/)
+
+#### MCP servers (1)
+
+Model Context Protocol servers that expose the API to agents.
+
+- [Agree.com MCP Server](https://apis.io/servers/agree-com/agree-com-mcp-server/)
+
+#### Overlays (1)
+
+OpenAPI overlays, including conversational phrasing for each operation.
+
+- [Agree Com Api Overlay](https://apis.io/overlays/agree-com/agree-com-api-overlay/)
+
+#### Security (2)
+
+Authentication, trust centre, and vulnerability disclosure.
+
+- [Agree Com Authentication](https://apis.io/security/agree-com/agree-com-authentication/)
+- [Agree Com Domain Security](https://apis.io/security/agree-com/agree-com-domain-security/)
+
+#### OAuth scopes (1)
+
+The permissions the API asks for.
+
+- [Agree Com Scopes](https://apis.io/scopes/agree-com/agree-com-scopes/)
+
+#### Plans and pricing (1)
+
+Published plans, tiers and prices.
+
+- [Agree Com Plans Pricing](https://apis.io/plans/agree-com/agree-com-plans-pricing/)
+
+#### Rate limits (1)
+
+Published request limits.
+
+- [Agree Com Rate Limits](https://apis.io/rate-limits/agree-com/agree-com-rate-limits/)
+
+## Where to find this API
+
+Links to the company's own pages. This repository publishes no copy of their specifications — the canonical document is theirs and lives at the URLs below.
+
+- [Website](https://agree.com/)
+- [Documentation](https://secure.agree.com/documentation)
+- [Getting started](https://secure.agree.com/documentation#section/Introduction/Quick-Start)
+- [API reference](https://secure.agree.com/documentation)
+- [Pricing](https://agree.com/pricing)
+- [Sign up](https://secure.agree.com/signup)
+- [Terms of service](https://agree.com/terms)
+- [Privacy policy](https://agree.com/privacy)
+
+## API Evangelist rating
+
+**Kin Score 52.0** — developing · rubric 0.25.0 · scored 2026-10-23
+
+| Facet | Score |
+|---|---|
+| Discoverability | 68.3 |
+| Contract quality | 61.2 |
+| Contract governance | 18.2 |
+| Operational transparency | 7.9 |
+| Developer ergonomics | 51.8 |
+| Access clarity | 76.3 |
+
+**Agent readiness 42.9** — agent-ready (gated down from agent-native)
+
+| Agent-readiness dimension | Result |
+|---|---|
+| Spec Presence | yes |
+| Agentic Access | — |
+| Reversibility Documented | — |
+| MCP Server | documented (partial credit) |
+| Auth Clarity | served (partial credit) |
+| Idempotency | — |
+| Error Semantics | verified |
+| OpenAPI Examples | — |
+| Rate Limit Signal | documented (partial credit) |
+| Event Surface Described | derived (partial credit) |
+| Agent Skills | derived (partial credit) |
+| Well Known Catalog | — |
+| Consent Identity | — |
+| Agent Card | — |
+| Dry Run Mode | — |
+| Delegated Identity | served (partial credit) |
+| Protected Resource Metadata | verified |
+| Dynamic Client Registration | yes |
+| Agentic Commerce | — |
+| Pagination Ratio | — |
+| Operation Distinctiveness | — |
+
+**Regulatory alignment 31.3** — Payments
+
+The rubric is published at [github.com/api-evangelist/kin-score](https://github.com/api-evangelist/kin-score). The per-check breakdown behind these numbers — which checks were earned, partial or missed — along with score history and how this provider compares to its peers, is available at [apis.io/providers/agree-com/](https://apis.io/providers/agree-com/).
+
+## How this profile is made
+
+API Evangelist profiles a company's public API surface the way a developer would find it: the website, developer portal and documentation, the specifications it publishes, its public repositories, and its pricing, status and changelog pages. From that it derives the properties above — contracts split per API, workflows, schemas, collections, governance rules, plans and rate limits — and scores them against the published [Kin Score rubric](https://github.com/api-evangelist/kin-score).
+
+The artifacts are published on [APIs.io](https://apis.io), not in this repository. This repository is the public record for Agree.com: the place to say something is wrong, missing or out of date, and to ask for a re-score or a removal.
+
+## Open an issue
+
+- **Something about this listing** — a wrong description, a missing API, a stale artifact or a question about the rating: [open an issue on this repository](https://github.com/api-evangelist/agree-com/issues/new).
+- **A new API, or one that is not in the catalog yet** — [submit it on APIs.io](https://apis.io/add/).
+- **Anything else** — [the APIs.io inbox](https://github.com/api-search/inbox/issues/new) or [info@apievangelist.com](mailto:info@apievangelist.com).
